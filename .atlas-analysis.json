@@ -1,0 +1,110 @@
+{
+  "projectType": "saas",
+  "projectName": "Claudio",
+  "projectDescription": "AI-powered productivity assistant for PropHero's Product & Technology team with multi-channel bot integration and MCP automation",
+  "theme": "palm",
+  "primaryColor": "#2050f6",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Channels",
+            "pages": [
+              "channels/telegram",
+              "channels/slack",
+              "channels/web-dashboard"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/overview",
+              "integrations/clickup",
+              "integrations/github",
+              "integrations/slack",
+              "integrations/google-docs",
+              "integrations/google-sheets",
+              "integrations/granola",
+              "integrations/bigquery"
+            ]
+          },
+          {
+            "group": "Workflows",
+            "pages": [
+              "workflows/overview",
+              "workflows/daily-standup",
+              "workflows/create-initiative",
+              "workflows/sprint-report",
+              "workflows/funnel-analysis",
+              "workflows/automation-scripts"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment",
+              "configuration/security",
+              "configuration/mcp-setup"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Web Dashboard",
+            "pages": [
+              "api/web-dashboard",
+              "api/websocket-chat"
+            ]
+          },
+          {
+            "group": "Bot Commands",
+            "pages": [
+              "api/telegram-commands",
+              "api/slack-commands"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-channel bot interface (Telegram, Slack, Web Dashboard)",
+    "Claude Code CLI integration with MCP support",
+    "ClickUp integration for product management workflows",
+    "GitHub integration for code and PR management",
+    "Google Workspace integration (Docs, Sheets, Gmail)",
+    "Automated workflow execution and cron jobs",
+    "Real-time WebSocket chat interface",
+    "Voice transcription support via Whisper API",
+    "Rate limiting and user authorization controls"
+  ],
+  "publicApiSurface": [
+    "GET /api/mcps - List all configured MCPs",
+    "GET /api/mcps/health - Health check all MCPs",
+    "GET /api/mcps/{name}/health - Health check specific MCP",
+    "GET /api/context - Get CLAUDE.md context",
+    "WS /ws/chat - WebSocket chat interface",
+    "/start - Telegram bot welcome command",
+    "/help - Telegram bot help command",
+    "/new - Start new conversation",
+    "/status - Bot status and configuration",
+    "/claudio - Slack slash command",
+    "/claudio-new - Slack new conversation command",
+    "/claudio-status - Slack status command"
+  ]
+}
