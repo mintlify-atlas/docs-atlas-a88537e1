@@ -1,0 +1,417 @@
+---
+title: "Web Dashboard API"
+description: "REST API endpoints for the Claudio web dashboard"
+---
+
+The Web Dashboard provides REST API endpoints for managing MCPs, reading documentation, and accessing Claudio's context.
+
+## Base URL
+
+```
+http://localhost:8000
+```
+
+## Authentication
+
+No authentication required for local development.
+
+---
+
+## Endpoints
+
+### List MCPs
+
+```http
+GET /api/mcps
+```
+
+Returns all configured MCPs from `cursor-config.json`.
+
+**Response**
+
+<ResponseField name="mcpServers" type="object">
+  Object containing all configured MCP servers
+</ResponseField>
+
+**Example Response**
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "url": "http://localhost:3000",
+      "transport": {
+        "type": "sse"
+      }
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
+      "env": {
+        "SLACK_BOT_TOKEN": "xoxb-...",
+        "SLACK_TEAM_ID": "T..."
+      }
+    },
+    "clickup": {
+      "command": "npx",
+      "args": ["-y", "@propherolabs/mcp-server-clickup"]
+    }
+  }
+}
+```
+
+---
+
+### Check All MCPs Health
+
+```http
+GET /api/mcps/health
+```
+
+Verifies the health status of all configured MCPs.
+
+**Response**
+
+<ResponseField name="checked_at" type="string">
+  ISO timestamp of when the health check was performed
+</ResponseField>
+
+<ResponseField name="mcps" type="array">
+  Array of MCP health check results
+  
+  <ResponseField name="name" type="string">
+    MCP server name
+  </ResponseField>
+  
+  <ResponseField name="status" type="string">
+    Health status: `ready`, `configured`, `warning`, `error`, or `unknown`
+  </ResponseField>
+  
+  <ResponseField name="message" type="string">
+    Detailed status message
+  </ResponseField>
+  
+  <ResponseField name="type" type="string">
+    MCP type: `remote`, `npx`, `python`, `node`, or `unknown`
+  </ResponseField>
+  
+  <ResponseField name="icon" type="string">
+    Emoji icon for the MCP
+  </ResponseField>
+  
+  <ResponseField name="checked_at" type="string">
+    ISO timestamp of the check
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+{
+  "checked_at": "2026-02-28T10:30:00.123456",
+  "mcps": [
+    {
+      "name": "github",
+      "status": "configured",
+      "message": "Remote MCP configured: http://localhost:3000",
+      "type": "remote",
+      "icon": "🐙",
+      "checked_at": "2026-02-28T10:30:00.123456"
+    },
+    {
+      "name": "slack",
+      "status": "ready",
+      "message": "npx package: @modelcontextprotocol/server-slack",
+      "type": "npx",
+      "icon": "💬",
+      "checked_at": "2026-02-28T10:30:00.234567"
+    },
+    {
+      "name": "clickup",
+      "status": "ready",
+      "message": "npx package: @propherolabs/mcp-server-clickup",
+      "type": "npx",
+      "icon": "✅",
+      "checked_at": "2026-02-28T10:30:00.345678"
+    }
+  ]
+}
+```
+
+---
+
+### Check Single MCP Health
+
+```http
+GET /api/mcps/{mcp_name}/health
+```
+
+Verifies the health status of a specific MCP.
+
+**Path Parameters**
+
+<ParamField path="mcp_name" type="string" required>
+  Name of the MCP to check (e.g., `github`, `slack`, `clickup`)
+</ParamField>
+
+**Response**
+
+<ResponseField name="name" type="string">
+  MCP server name
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Health status: `ready`, `configured`, `warning`, `error`, or `unknown`
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Detailed status message
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  MCP type: `remote`, `npx`, `python`, `node`, or `unknown`
+</ResponseField>
+
+<ResponseField name="icon" type="string">
+  Emoji icon for the MCP
+</ResponseField>
+
+<ResponseField name="checked_at" type="string">
+  ISO timestamp of the check
+</ResponseField>
+
+**Example Response**
+
+```json
+{
+  "name": "github",
+  "status": "configured",
+  "message": "Remote MCP configured: http://localhost:3000",
+  "type": "remote",
+  "icon": "🐙",
+  "checked_at": "2026-02-28T10:30:00.123456"
+}
+```
+
+**Error Response (404)**
+
+```json
+{
+  "detail": "MCP 'unknown-mcp' not found"
+}
+```
+
+---
+
+### Get Documentation List
+
+```http
+GET /api/docs/{doc_type}
+```
+
+Returns a list of available documentation files.
+
+**Path Parameters**
+
+<ParamField path="doc_type" type="string" required>
+  Type of documentation: `integrations` or `workflows`
+</ParamField>
+
+**Response for Integrations**
+
+<ResponseField name="integrations" type="array">
+  Array of integration documentation
+  
+  <ResponseField name="name" type="string">
+    Integration name
+  </ResponseField>
+  
+  <ResponseField name="path" type="string">
+    Relative path to the guide file
+  </ResponseField>
+  
+  <ResponseField name="has_config" type="boolean">
+    Whether the integration has a config.md file
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+[
+  {
+    "name": "clickup",
+    "path": "docs/integrations/clickup/guide.md",
+    "has_config": true
+  },
+  {
+    "name": "github",
+    "path": "docs/integrations/github/guide.md",
+    "has_config": false
+  },
+  {
+    "name": "slack",
+    "path": "docs/integrations/slack/guide.md",
+    "has_config": false
+  }
+]
+```
+
+**Response for Workflows**
+
+<ResponseField name="workflows" type="array">
+  Array of workflow documentation
+  
+  <ResponseField name="name" type="string">
+    Workflow name (formatted title)
+  </ResponseField>
+  
+  <ResponseField name="path" type="string">
+    Relative path to the workflow file
+  </ResponseField>
+  
+  <ResponseField name="filename" type="string">
+    Original filename
+  </ResponseField>
+</ResponseField>
+
+**Example Response**
+
+```json
+[
+  {
+    "name": "Create Initiative",
+    "path": "docs/workflows/create-initiative.md",
+    "filename": "create-initiative.md"
+  },
+  {
+    "name": "Daily Standup",
+    "path": "docs/workflows/daily-standup.md",
+    "filename": "daily-standup.md"
+  },
+  {
+    "name": "Sprint Report",
+    "path": "docs/workflows/sprint-report.md",
+    "filename": "sprint-report.md"
+  }
+]
+```
+
+---
+
+### Read Documentation File
+
+```http
+GET /api/docs/read?path={file_path}
+```
+
+Reads the contents of a documentation file.
+
+**Query Parameters**
+
+<ParamField query="path" type="string" required>
+  Relative path to the documentation file (must be within `docs/` directory)
+</ParamField>
+
+**Response**
+
+<ResponseField name="path" type="string">
+  The requested file path
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  The file contents
+</ResponseField>
+
+**Example Request**
+
+```
+GET /api/docs/read?path=docs/workflows/daily-standup.md
+```
+
+**Example Response**
+
+```json
+{
+  "path": "docs/workflows/daily-standup.md",
+  "content": "# Daily Standup\n\n## Overview\n..."
+}
+```
+
+**Error Responses**
+
+```json
+// 403 - Path outside docs/ directory
+{
+  "detail": "Access denied"
+}
+
+// 404 - File not found
+{
+  "detail": "File not found"
+}
+```
+
+---
+
+### Get Claudio Context
+
+```http
+GET /api/context
+```
+
+Returns the contents of `CLAUDE.md` (Claudio's main context file).
+
+**Response**
+
+<ResponseField name="path" type="string">
+  Always `CLAUDE.md`
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  The complete CLAUDE.md file contents
+</ResponseField>
+
+**Example Response**
+
+```json
+{
+  "path": "CLAUDE.md",
+  "content": "# Claudio - Asistente de Productividad PropHero\n\nEres **Claudio**..."
+}
+```
+
+---
+
+## HTML Pages
+
+### Dashboard
+
+```http
+GET /
+```
+
+Main dashboard page showing MCPs, integrations, and workflows.
+
+### Chat Page
+
+```http
+GET /chat
+```
+
+Full-screen chat interface with Claudio (uses WebSocket connection).
+
+---
+
+## Configuration
+
+The web dashboard is configured via environment variables:
+
+```bash
+CLAUDE_CLI_PATH=claude              # Path to Claude Code CLI
+WORKSPACE_PATH=/path/to/workspace   # Working directory
+COMMMAND_TIMEOUT=1800               # Command timeout in seconds
+SKIP_PERMISSIONS=true               # Skip permission prompts
+```
+
+See `/channels/web/.env.example` for complete configuration options.

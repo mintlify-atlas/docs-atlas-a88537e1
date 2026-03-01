@@ -1,0 +1,211 @@
+---
+title: Environment variables
+description: Configure Claudio's core settings, workspace, timeouts, and permissions
+---
+
+Claudio uses environment variables to configure its behavior across all channels (Telegram, Slack, CLI). Set these in your `.env` file at the root of the project.
+
+## Quick setup
+
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your values
+
+3. Restart the bot to apply changes
+
+## Core configuration
+
+<ParamField path="WORKSPACE_PATH" type="string" required>
+  The directory where Claudio executes commands and reads project context.
+  
+  ```bash
+  WORKSPACE_PATH=/path/to/claudio
+  ```
+  
+  This should point to your Claudio project root so it can read `CLAUDE.md` and access MCPs.
+</ParamField>
+
+<ParamField path="CLAUDE_CLI_PATH" type="string" default="claude">
+  Path to the Claude Code CLI executable.
+  
+  ```bash
+  CLAUDE_CLI_PATH=claude
+  ```
+  
+  By default, Claudio searches for `claude` in your `PATH`. Specify a full path if needed:
+  
+  ```bash
+  CLAUDE_CLI_PATH=/usr/local/bin/claude
+  ```
+</ParamField>
+
+## MCP and permissions
+
+<ParamField path="ALLOWED_TOOLS" type="string" default="*">
+  Controls which tools Claude can use automatically.
+  
+  ```bash
+  ALLOWED_TOOLS=*
+  ```
+  
+  - `*` - Allow all tools (recommended for MCPs)
+  - Comma-separated list - Only allow specific tools: `Read,Edit,Bash`
+  
+  <Note>
+    When using MCPs, set this to `*` to avoid permission prompts that can't be answered in non-interactive mode.
+  </Note>
+</ParamField>
+
+<ParamField path="SKIP_PERMISSIONS" type="boolean" default="true">
+  Bypass all permission checks for tools and MCPs.
+  
+  ```bash
+  SKIP_PERMISSIONS=true
+  ```
+  
+  This is required for Telegram and Slack bots because they run in non-interactive mode. When enabled, Claudio uses the `--dangerously-skip-permissions` flag.
+  
+  <Warning>
+    Only enable this in trusted environments. It allows Claudio to execute any tool without confirmation.
+  </Warning>
+</ParamField>
+
+## Performance and limits
+
+<ParamField path="COMMAND_TIMEOUT" type="number" default="1800">
+  Maximum execution time for commands in seconds.
+  
+  ```bash
+  COMMAND_TIMEOUT=1800
+  ```
+  
+  Default is 1800 seconds (30 minutes). Prevents long-running or stuck commands from blocking the bot.
+</ParamField>
+
+<ParamField path="MAX_INPUT_LENGTH" type="number" default="10000">
+  Maximum length of user input in characters.
+  
+  ```bash
+  MAX_INPUT_LENGTH=10000
+  ```
+  
+  Protects against DoS attacks from extremely long messages that could consume excessive resources.
+</ParamField>
+
+<ParamField path="BUFFER_TIMEOUT" type="number" default="1.5">
+  Time in seconds to accumulate output before sending (Telegram only).
+  
+  ```bash
+  BUFFER_TIMEOUT=1.5
+  ```
+  
+  Claudio buffers output to avoid flooding users with many small messages. Lower values send updates faster but create more messages.
+</ParamField>
+
+## Voice transcription (optional)
+
+<ParamField path="OPENAI_API_KEY" type="string">
+  OpenAI API key for voice message transcription using Whisper.
+  
+  ```bash
+  OPENAI_API_KEY=sk-proj-...
+  ```
+  
+  Get your API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+  
+  If not set, voice messages will not work in Telegram and Slack.
+</ParamField>
+
+<ParamField path="USE_WHISPER_API" type="boolean" default="true">
+  Use OpenAI's Whisper API for transcription.
+  
+  ```bash
+  USE_WHISPER_API=true
+  ```
+  
+  Set to `false` to use a local Whisper model instead (requires additional setup).
+</ParamField>
+
+<ParamField path="WHISPER_LANGUAGE" type="string" default="es">
+  Language code for Whisper transcription.
+  
+  ```bash
+  WHISPER_LANGUAGE=es
+  ```
+  
+  Use `en` for English, `es` for Spanish, etc. Set to empty string for auto-detection.
+</ParamField>
+
+## Channel-specific variables
+
+### Telegram
+
+<ParamField path="TELEGRAM_BOT_TOKEN" type="string" required>
+  Your Telegram bot token from @BotFather.
+  
+  ```bash
+  TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+  ```
+  
+  Get this by creating a bot with [@BotFather](https://t.me/botfather) on Telegram.
+</ParamField>
+
+### Slack
+
+<ParamField path="SLACK_BOT_TOKEN" type="string" required>
+  Your Slack bot token (starts with `xoxb-`).
+  
+  ```bash
+  SLACK_BOT_TOKEN=xoxb-...
+  ```
+  
+  Get this from your Slack App's "OAuth & Permissions" page.
+</ParamField>
+
+<ParamField path="SLACK_APP_TOKEN" type="string" required>
+  Your Slack app-level token for Socket Mode (starts with `xapp-`).
+  
+  ```bash
+  SLACK_APP_TOKEN=xapp-...
+  ```
+  
+  Generate this in your Slack App's "Basic Information" under "App-Level Tokens".
+</ParamField>
+
+## Example configuration
+
+```bash .env
+# Core
+WORKSPACE_PATH=/Users/you/Dev/claudio
+CLAUDE_CLI_PATH=claude
+
+# Permissions (required for bots)
+ALLOWED_TOOLS=*
+SKIP_PERMISSIONS=true
+
+# Security
+COMMAND_TIMEOUT=1800
+MAX_INPUT_LENGTH=10000
+ALLOWED_USER_IDS=123456789
+
+# Telegram
+TELEGRAM_BOT_TOKEN=1234567890:ABC...
+
+# Voice (optional)
+OPENAI_API_KEY=sk-proj-...
+WHISPER_LANGUAGE=es
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Security settings" icon="shield" href="/configuration/security">
+    Configure rate limiting and user authorization
+  </Card>
+  <Card title="MCP setup" icon="plug" href="/configuration/mcp-setup">
+    Set up Model Context Protocol servers
+  </Card>
+</CardGroup>

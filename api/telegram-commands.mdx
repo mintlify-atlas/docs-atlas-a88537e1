@@ -1,0 +1,486 @@
+---
+title: "Telegram Bot Commands"
+description: "Command reference for the Claudio Telegram bot"
+---
+
+The Telegram bot allows you to interact with Claudio through Telegram, executing commands via Claude Code CLI with full MCP access.
+
+## Bot Setup
+
+1. Get your Telegram user ID using `/myid` command
+2. Add your ID to `ALLOWED_USER_IDS` in `.env`
+3. Start the bot: `./channels/telegram/start.sh`
+
+---
+
+## Commands
+
+### /start
+
+Shows welcome message and your user information.
+
+**Usage**
+
+```
+/start
+```
+
+**Response**
+
+```
+🤖 Bot Claude Code CLI
+
+Tu ID de usuario: 123456789
+
+Envía mensajes aquí y se ejecutarán en tu instancia local de Claude Code CLI.
+
+Comandos disponibles:
+/start - Muestra este mensaje
+/help - Muestra ayuda detallada
+/new - Inicia una nueva conversación
+/status - Muestra el estado del bot
+/myid - Muestra tu ID de usuario
+
+Simplemente escribe tu mensaje y se ejecutará en Claude Code.
+```
+
+**Authorization**
+
+If you're not authorized:
+
+```
+❌ Acceso denegado
+
+No estás autorizado para usar este bot.
+Contacta al administrador para obtener acceso.
+```
+
+---
+
+### /help
+
+Displays detailed help and usage examples.
+
+**Usage**
+
+```
+/help
+```
+
+**Response**
+
+```
+📚 Ayuda - Bot Claude Code CLI
+
+Uso básico:
+Simplemente escribe tu mensaje y se ejecutará en Claude Code CLI.
+
+Ejemplos:
+• Lista los archivos en el directorio actual
+• Ejecuta el script test.py
+• Busca errores en el código
+• Usa el MCP de GitHub para listar repositorios
+
+Comandos:
+/start - Mensaje de bienvenida
+/help - Esta ayuda
+/new - Inicia nueva conversación (limpia contexto)
+/status - Estado del bot y configuración
+
+Notas:
+• Las conversaciones se mantienen por usuario
+• Puedes usar todos los MCPs disponibles localmente
+• Los comandos se ejecutan en: /path/to/workspace
+```
+
+---
+
+### /new
+
+Starts a new conversation by clearing the current context.
+
+**Usage**
+
+```
+/new
+```
+
+**Response**
+
+```
+✨ Nueva conversación iniciada. El contexto anterior ha sido limpiado.
+```
+
+**When to Use**
+
+- Switching to a completely different task
+- Claudio has incorrect context
+- Starting a fresh debugging session
+- After completing a task
+
+---
+
+### /status
+
+Shows bot status, configuration, and Claude CLI availability.
+
+**Usage**
+
+```
+/status
+```
+
+**Response**
+
+```
+📊 Estado del Bot
+
+Claude CLI: ✅ Disponible (v1.0.0)
+Ruta CLI: claude
+Workspace: /home/user/claudio
+Usuario: John Doe
+Sesión activa: Sí
+Transcripción de voz: ✅ Configurado (key: sk-proj-abc...xyz)
+```
+
+**Status Indicators**
+
+<ResponseField name="Claude CLI">
+  - ✅ Disponible: CLI is installed and working
+  - ❌ No disponible: CLI not found or not working
+</ResponseField>
+
+<ResponseField name="Transcripción de voz">
+  - ✅ Configurado: OpenAI API key is set
+  - ⚠️ OpenAI instalado pero falta API key: Library installed but no key
+  - ❌ OpenAI no instalado: OpenAI library not installed
+</ResponseField>
+
+<ResponseField name="Sesión activa">
+  - Sí: You have an active conversation session
+  - No: No active session (next message starts fresh)
+</ResponseField>
+
+---
+
+### /myid
+
+Shows your Telegram user information and authorization status.
+
+**Usage**
+
+```
+/myid
+```
+
+**Response**
+
+```
+👤 Información de Usuario
+
+Nombre: John Doe
+Username: @johndoe
+ID: 123456789
+Estado: ✅ Autorizado
+
+Para autorizar este usuario, agrega este ID a ALLOWED_USER_IDS en tu archivo .env:
+ALLOWED_USER_IDS=123456789
+```
+
+**Use Cases**
+
+- Initial bot setup (get your ID for `.env`)
+- Troubleshooting access issues
+- Adding new authorized users
+- Verifying authorization status
+
+---
+
+## Sending Messages
+
+Just type any message to interact with Claudio. No command prefix needed.
+
+**Examples**
+
+```
+Lista los archivos en el directorio actual
+```
+
+```
+Crea una nueva Initiative en ClickUp para el feature de autenticación
+```
+
+```
+Revisa el último commit en GitHub y explica los cambios
+```
+
+```
+Envía un mensaje a #engineering en Slack
+```
+
+**Response Flow**
+
+1. **Processing**: `⏳ Procesando...`
+2. **Streaming Output**: Real-time output from Claude CLI
+3. **Completion**: `✅ Comando ejecutado exitosamente` or error message
+
+---
+
+## Voice Messages
+
+Send voice messages to Claudio - they're automatically transcribed and processed.
+
+**Requirements**
+
+- OpenAI API key configured in `.env`
+- `openai` Python package installed
+
+**Flow**
+
+1. Send voice message
+2. Bot responds: `🎤 Transcribiendo audio...`
+3. Transcription shown: `📝 Transcripción: [your text]`
+4. Message processed automatically
+
+**Configuration**
+
+```bash
+OPENAI_API_KEY=sk-proj-...          # Required for transcription
+WHISPER_LANGUAGE=es                 # Language code (es, en, etc)
+```
+
+**Error Messages**
+
+```
+❌ Transcripción no disponible
+
+OpenAI no está instalado.
+Instala con: pip install openai
+```
+
+```
+❌ Transcripción no disponible
+
+OPENAI_API_KEY no está configurada en el archivo .env.
+Agrega tu API key y reinicia el bot.
+```
+
+---
+
+## Session Management
+
+### How Sessions Work
+
+- Each user has their own isolated session
+- Sessions persist across messages (conversation continuity)
+- Use `/new` to clear session and start fresh
+- Sessions are automatically created on first successful command
+
+### Session Indicators
+
+In logs, you'll see:
+
+```
+[Usuario 123456789] Continuando sesión anterior
+```
+
+or
+
+```
+[Usuario 123456789] Primera sesión
+```
+
+---
+
+## Rate Limiting
+
+To prevent abuse, the bot implements rate limiting.
+
+**Default Limits**
+
+- 10 requests per 60 seconds per user
+
+**Configuration**
+
+```bash
+RATE_LIMIT_REQUESTS=10              # Max requests
+RATE_LIMIT_WINDOW=60                # Time window in seconds
+```
+
+**Rate Limit Response**
+
+```
+⏱️ Rate limit excedido
+
+Has enviado demasiadas solicitudes en poco tiempo.
+Por favor espera 45 segundos antes de intentar de nuevo.
+
+Límite: 10 requests por 60 segundos.
+```
+
+---
+
+## Timeouts
+
+Commands have a maximum execution time to prevent hanging.
+
+**Default Timeout**
+
+- 1800 seconds (30 minutes)
+
+**Configuration**
+
+```bash
+COMMAND_TIMEOUT=1800                # Timeout in seconds
+```
+
+**Timeout Response**
+
+```
+⏱️ Timeout alcanzado
+
+El comando excedió el tiempo máximo permitido (1800s) y fue terminado por seguridad.
+
+Esto previene que comandos maliciosos bloqueen el bot indefinidamente.
+```
+
+---
+
+## Input Length Limits
+
+Messages have a maximum length to prevent DoS attacks.
+
+**Default Limit**
+
+- 10,000 characters
+
+**Configuration**
+
+```bash
+MAX_INPUT_LENGTH=10000              # Max message length
+```
+
+**Limit Exceeded Response**
+
+```
+❌ Mensaje demasiado largo
+
+El mensaje excede el límite máximo permitido de 10,000 caracteres.
+Tu mensaje tiene 15,432 caracteres.
+
+Por favor divide tu mensaje en partes más pequeñas.
+```
+
+---
+
+## Security
+
+### User Authorization
+
+**Environment Variable**
+
+```bash
+# Single user
+ALLOWED_USER_IDS=123456789
+
+# Multiple users
+ALLOWED_USER_IDS=123456789,987654321,555444333
+```
+
+**Bot Behavior**
+
+- If `ALLOWED_USER_IDS` is empty: Bot will NOT start (security enforcement)
+- Unauthorized users receive "Acceso denegado" message
+- Use `/myid` to get user IDs
+
+### Process Isolation
+
+- Each bot instance uses a lock file to prevent multiple instances
+- Lock file: `/tmp/telegram_claude_bot.lock`
+- Automatic cleanup on exit
+
+### Permission Handling
+
+```bash
+SKIP_PERMISSIONS=true               # Auto-approve all tools (default)
+ALLOWED_TOOLS=Read,Edit,Bash        # Or specify allowed tools
+```
+
+---
+
+## Error Messages
+
+### CLI Not Found
+
+```
+Claude CLI no encontrado en: claude
+```
+
+**Solution**: Install Claude CLI or set `CLAUDE_CLI_PATH` in `.env`
+
+### Execution Error
+
+```
+❌ Error ejecutando comando (código: 1)
+```
+
+**Check**: Command output for specific error details
+
+### Empty Message
+
+```
+Por favor envía un mensaje válido.
+```
+
+**Solution**: Send a non-empty message
+
+---
+
+## Environment Variables
+
+Complete configuration reference:
+
+```bash
+# Required
+TELEGRAM_BOT_TOKEN=123456:ABC...    # From @BotFather
+ALLOWED_USER_IDS=123456789          # Authorized user IDs (required)
+
+# Paths
+CLAUDE_CLI_PATH=claude              # Path to Claude CLI (default: claude)
+WORKSPACE_PATH=/path/to/workspace   # Working directory (default: cwd)
+
+# Security
+COMMAND_TIMEOUT=1800                # Max command time (default: 1800s)
+MAX_INPUT_LENGTH=10000              # Max message length (default: 10000)
+RATE_LIMIT_REQUESTS=10              # Max requests (default: 10)
+RATE_LIMIT_WINDOW=60                # Rate limit window (default: 60s)
+SKIP_PERMISSIONS=true               # Auto-approve tools (default: true)
+ALLOWED_TOOLS=*                     # Allowed tools (default: *)
+
+# Voice Transcription
+OPENAI_API_KEY=sk-proj-...          # For voice message transcription
+WHISPER_LANGUAGE=es                 # Transcription language (default: es)
+
+# Output
+BUFFER_TIMEOUT=1.5                  # Output buffer time (default: 1.5s)
+```
+
+---
+
+## Logs
+
+Bot logs include user information for debugging:
+
+```
+[Usuario 123456789] Procesando query: Lista los archivos...
+[Usuario 123456789] Ejecutando comando: ['claude', '-c', '--dangerously-skip-permissions', '-p', ...]
+[Usuario 123456789] Comando completado con código: 0 (éxito: True)
+[Usuario 123456789] Sesión marcada como activa
+```
+
+**Security Logs**
+
+```
+[SEGURIDAD] Usuario no autorizado intentó enviar mensaje: 999999999 (@hacker)
+[SEGURIDAD] Usuario 123456789 (@user) excedió rate limit. Esperar 45.3s
+```

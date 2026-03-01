@@ -1,0 +1,420 @@
+---
+title: "WebSocket Chat"
+description: "Real-time chat interface with Claudio via WebSocket"
+---
+
+The WebSocket chat interface provides real-time streaming communication with Claudio through the Claude Code CLI.
+
+## Connection
+
+```
+ws://localhost:8000/ws/chat
+```
+
+## Protocol
+
+The WebSocket uses JSON messages for bidirectional communication.
+
+---
+
+## Client → Server Messages
+
+### Send Message
+
+Send a message to Claudio for processing.
+
+**Message Format**
+
+<ParamField body="type" type="string" required>
+  Must be `message`
+</ParamField>
+
+<ParamField body="content" type="string" required>
+  The message/query to send to Claudio
+</ParamField>
+
+**Example**
+
+```json
+{
+  "type": "message",
+  "content": "Lista los archivos en el directorio actual"
+}
+```
+
+---
+
+### Start New Session
+
+Clear the conversation context and start fresh.
+
+**Message Format**
+
+<ParamField body="type" type="string" required>
+  Must be `new_session`
+</ParamField>
+
+**Example**
+
+```json
+{
+  "type": "new_session"
+}
+```
+
+---
+
+## Server → Client Messages
+
+### System Message
+
+Sent when a new session is started or for system notifications.
+
+<ResponseField name="type" type="string">
+  Value: `system`
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  System message text
+</ResponseField>
+
+**Example**
+
+```json
+{
+  "type": "system",
+  "content": "Nueva conversación iniciada."
+}
+```
+
+---
+
+### Start Message
+
+Sent when Claudio starts processing a query.
+
+<ResponseField name="type" type="string">
+  Value: `start`
+</ResponseField>
+
+**Example**
+
+```json
+{
+  "type": "start"
+}
+```
+
+---
+
+### Output Chunk
+
+Streaming output from Claude Code CLI execution.
+
+<ResponseField name="type" type="string">
+  Value: `chunk`
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  Output text chunk (ANSI codes removed)
+</ResponseField>
+
+**Example**
+
+```json
+{
+  "type": "chunk",
+  "content": "Ejecutando comando...\n"
+}
+```
+
+---
+
+### Error Message
+
+Sent when an error occurs during execution.
+
+<ResponseField name="type" type="string">
+  Value: `error`
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  Error message text
+</ResponseField>
+
+**Example**
+
+```json
+{
+  "type": "error",
+  "content": "Claude CLI no encontrado en: claude"
+}
+```
+
+---
+
+### Done Message
+
+Sent when command execution completes.
+
+<ResponseField name="type" type="string">
+  Value: `done`
+</ResponseField>
+
+<ResponseField name="success" type="boolean">
+  Whether the command executed successfully
+</ResponseField>
+
+<ResponseField name="returncode" type="number">
+  Process exit code (0 = success, -1 = error, -2 = timeout)
+</ResponseField>
+
+<ResponseField name="timeout" type="boolean" optional>
+  Present and `true` if the command timed out
+</ResponseField>
+
+**Success Example**
+
+```json
+{
+  "type": "done",
+  "success": true,
+  "returncode": 0
+}
+```
+
+**Error Example**
+
+```json
+{
+  "type": "done",
+  "success": false,
+  "returncode": 1
+}
+```
+
+**Timeout Example**
+
+```json
+{
+  "type": "done",
+  "success": false,
+  "returncode": -2,
+  "timeout": true
+}
+```
+
+---
+
+## Example Flow
+
+Here's a complete example of a WebSocket conversation:
+
+### 1. Client Connects
+
+```javascript
+const ws = new WebSocket('ws://localhost:8000/ws/chat');
+```
+
+### 2. Client Sends Message
+
+```javascript
+ws.send(JSON.stringify({
+  type: 'message',
+  content: 'Crea una lista de tareas en ClickUp'
+}));
+```
+
+### 3. Server Responds with Stream
+
+```json
+// Start processing
+{"type": "start"}
+
+// Streaming output chunks
+{"type": "chunk", "content": "Conectando con ClickUp MCP...\n"}
+{"type": "chunk", "content": "Creando lista de tareas...\n"}
+{"type": "chunk", "content": "✅ Lista creada exitosamente\n"}
+
+// Completion
+{"type": "done", "success": true, "returncode": 0}
+```
+
+### 4. Client Starts New Session
+
+```javascript
+ws.send(JSON.stringify({
+  type: 'new_session'
+}));
+```
+
+```json
+// Server confirms
+{"type": "system", "content": "Nueva conversación iniciada."}
+```
+
+---
+
+## JavaScript Client Example
+
+```javascript
+class ClaudeChatClient {
+  constructor(url = 'ws://localhost:8000/ws/chat') {
+    this.ws = new WebSocket(url);
+    this.setupHandlers();
+  }
+  
+  setupHandlers() {
+    this.ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      
+      switch(message.type) {
+        case 'system':
+          console.log('System:', message.content);
+          break;
+        case 'start':
+          console.log('Processing started...');
+          break;
+        case 'chunk':
+          console.log(message.content);
+          break;
+        case 'error':
+          console.error('Error:', message.content);
+          break;
+        case 'done':
+          console.log('Done. Success:', message.success);
+          break;
+      }
+    };
+    
+    this.ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    this.ws.onclose = () => {
+      console.log('WebSocket closed');
+    };
+  }
+  
+  sendMessage(content) {
+    this.ws.send(JSON.stringify({
+      type: 'message',
+      content: content
+    }));
+  }
+  
+  newSession() {
+    this.ws.send(JSON.stringify({
+      type: 'new_session'
+    }));
+  }
+}
+
+// Usage
+const client = new ClaudeChatClient();
+client.sendMessage('Hola Claudio, lista los MCPs disponibles');
+```
+
+---
+
+## Session Management
+
+The WebSocket maintains a session with Claude Code CLI:
+
+- **Session ID**: Fixed as `web_default` for web clients
+- **Continuity**: Messages continue the conversation unless `new_session` is sent
+- **Isolation**: Each WebSocket connection has its own session
+- **Cleanup**: Sessions are cleared when the WebSocket disconnects
+
+---
+
+## Error Handling
+
+The WebSocket handles several error scenarios:
+
+### Connection Errors
+
+```json
+{
+  "type": "error",
+  "content": "WebSocket connection error"
+}
+```
+
+### CLI Not Found
+
+```json
+{
+  "type": "error",
+  "content": "Claude CLI no encontrado en: claude"
+}
+```
+
+### Command Timeout
+
+```json
+{
+  "type": "error",
+  "content": "Timeout: el comando excedió 1800s"
+}
+
+{
+  "type": "done",
+  "success": false,
+  "returncode": -2,
+  "timeout": true
+}
+```
+
+### Execution Errors
+
+```json
+{
+  "type": "error",
+  "content": "Error ejecutando comando: [error details]"
+}
+
+{
+  "type": "done",
+  "success": false,
+  "returncode": -1
+}
+```
+
+---
+
+## Configuration
+
+WebSocket behavior is configured via environment variables:
+
+```bash
+CLAUDE_CLI_PATH=claude              # Path to Claude CLI executable
+WORKSPACE_PATH=/path/to/workspace   # Working directory for commands
+COMMAND_TIMEOUT=1800                # Timeout in seconds (default: 30 min)
+SKIP_PERMISSIONS=true               # Auto-approve tool usage
+```
+
+---
+
+## Implementation Details
+
+### Streaming
+
+- Output is streamed in real-time as Claude CLI produces it
+- ANSI escape codes are automatically removed
+- Both stdout and stderr are captured
+- Chunks are sent line-by-line
+
+### Process Management
+
+- Commands execute using `asyncio.create_subprocess_exec`
+- Timeout protection prevents long-running commands
+- Process cleanup on disconnect
+- Session state is preserved between messages
+
+### Security
+
+- No authentication (local development only)
+- Commands run with workspace path restrictions
+- Timeout limits prevent resource exhaustion
+- Session isolation between connections

@@ -1,0 +1,597 @@
+---
+title: "Slack Bot Commands"
+description: "Interaction methods and commands for the Claudio Slack bot"
+---
+
+The Slack bot allows you to interact with Claudio through Slack, executing commands via Claude Code CLI with full MCP access.
+
+## Bot Setup
+
+1. Create a Slack App at [api.slack.com/apps](https://api.slack.com/apps)
+2. Enable Socket Mode and generate App Token
+3. Add bot scopes: `chat:write`, `app_mentions:read`, `im:history`, `im:read`, `im:write`
+4. Install app to workspace
+5. Configure `.env` with tokens and authorized user IDs
+6. Start bot: `./channels/slack/start.sh`
+
+See `channels/slack/README.md` for detailed setup instructions.
+
+---
+
+## Interaction Methods
+
+### Direct Messages (DM)
+
+Send a direct message to the Claudio bot.
+
+**Usage**
+
+Simply open a DM with the bot and type your message:
+
+```
+Lista los archivos en el directorio actual
+```
+
+**Response Flow**
+
+1. Bot acknowledges: `⏳ Procesando...`
+2. Streaming output appears
+3. Completion: `✅ Comando ejecutado exitosamente` or error
+
+**Examples**
+
+```
+Crea una nueva Initiative en ClickUp
+```
+
+```
+Muestra el estado de los PRs abiertos en GitHub
+```
+
+---
+
+### Mentions in Channels
+
+Mention the bot in any channel it's added to.
+
+**Usage**
+
+```
+@Claudio lista los MCPs disponibles
+```
+
+**How It Works**
+
+- Bot removes its own mention from the message
+- Processes the remaining text
+- Responds in a thread
+
+**Empty Mention**
+
+If you mention the bot without text:
+
+```
+@Claudio
+```
+
+Response:
+
+```
+👋 ¡Hola! Soy Claudio. ¿En qué puedo ayudarte?
+
+Escribe tu pregunta después de mencionarme.
+```
+
+**Thread Responses**
+
+All responses appear in the same thread as your mention for better organization.
+
+---
+
+### Slash Commands
+
+Use slash commands for quick interactions.
+
+#### /claudio
+
+Execute a command via slash command.
+
+**Usage**
+
+```
+/claudio [your message]
+```
+
+**Examples**
+
+```
+/claudio lista los archivos del proyecto
+```
+
+```
+/claudio revisa el último commit en GitHub
+```
+
+**Empty Command**
+
+```
+/claudio
+```
+
+Response:
+
+```
+👋 Soy Claudio. Usa /claudio [tu pregunta] para interactuar conmigo.
+```
+
+---
+
+#### /claudio-new
+
+Start a new conversation (clear context).
+
+**Usage**
+
+```
+/claudio-new
+```
+
+**Response**
+
+```
+✨ Nueva conversación iniciada. El contexto anterior ha sido limpiado.
+```
+
+**When to Use**
+
+- Switching to a different task
+- Claudio has incorrect context
+- Starting fresh after completing a task
+
+---
+
+#### /claudio-status
+
+Check bot status and your authorization.
+
+**Usage**
+
+```
+/claudio-status
+```
+
+**Response**
+
+```
+📊 Estado del Bot Claudio
+
+Claude CLI: ✅ Disponible (v1.0.0)
+Workspace: /home/user/claudio
+Tu User ID: U123ABC456
+Autorizado: ✅ Sí
+Sesión activa: Sí
+```
+
+**Response Fields**
+
+<ResponseField name="Claude CLI">
+  - ✅ Disponible: CLI installed and working
+  - ❌ No disponible: CLI not found
+</ResponseField>
+
+<ResponseField name="Workspace">
+  Working directory where commands execute
+</ResponseField>
+
+<ResponseField name="Tu User ID">
+  Your Slack user ID (needed for authorization)
+</ResponseField>
+
+<ResponseField name="Autorizado">
+  - ✅ Sí: You're authorized
+  - ❌ No: You need to be added to `SLACK_ALLOWED_USER_IDS`
+</ResponseField>
+
+<ResponseField name="Sesión activa">
+  - Sí: Active conversation session
+  - No: No active session
+</ResponseField>
+
+---
+
+## Session Management
+
+### How Sessions Work
+
+- Each user has an isolated session
+- Sessions persist across messages
+- Use `/claudio-new` to clear and start fresh
+- Sessions auto-create on first successful command
+
+### Session Continuity
+
+When you have an active session:
+
+```
+[Usuario U123ABC] Continuando sesión anterior
+```
+
+First message or after `/claudio-new`:
+
+```
+[Usuario U123ABC] Primera sesión
+```
+
+---
+
+## Authorization
+
+### User Authorization
+
+Only authorized users can interact with the bot.
+
+**Configuration**
+
+```bash
+# Single user
+SLACK_ALLOWED_USER_IDS=U123ABC456
+
+# Multiple users
+SLACK_ALLOWED_USER_IDS=U123ABC456,U789XYZ012,U456DEF789
+```
+
+**Unauthorized Response**
+
+```
+❌ Acceso denegado
+
+No estás autorizado para usar este bot.
+```
+
+**Getting Your User ID**
+
+1. Use `/claudio-status` command
+2. Or click your profile → More → Copy member ID
+
+---
+
+## Rate Limiting
+
+Prevents spam and resource abuse.
+
+**Default Limits**
+
+- 10 requests per 60 seconds per user
+
+**Configuration**
+
+```bash
+RATE_LIMIT_REQUESTS=10              # Max requests
+RATE_LIMIT_WINDOW=60                # Time window in seconds
+```
+
+**Rate Limit Response**
+
+```
+⏱️ Rate limit excedido
+
+Espera 45 segundos.
+```
+
+---
+
+## Input Length Limits
+
+Messages have a maximum length.
+
+**Default Limit**
+
+- 10,000 characters
+
+**Configuration**
+
+```bash
+MAX_INPUT_LENGTH=10000
+```
+
+**Limit Exceeded Response**
+
+```
+❌ Mensaje demasiado largo
+
+Máximo: 10,000 caracteres.
+```
+
+---
+
+## Timeouts
+
+Commands have a maximum execution time.
+
+**Default Timeout**
+
+- 1800 seconds (30 minutes)
+
+**Configuration**
+
+```bash
+COMMAND_TIMEOUT=1800                # Seconds
+```
+
+**Timeout Response**
+
+```
+⏱️ Timeout alcanzado
+
+El comando excedió 1800s.
+```
+
+---
+
+## Error Messages
+
+### Access Denied
+
+```
+❌ Acceso denegado
+
+No estás autorizado para usar este bot.
+```
+
+**Solution**: Add your user ID to `SLACK_ALLOWED_USER_IDS` in `.env`
+
+### Rate Limit Exceeded
+
+```
+⏱️ Rate limit excedido
+
+Espera 30 segundos.
+```
+
+**Solution**: Wait for the specified time before sending another message
+
+### Message Too Long
+
+```
+❌ Mensaje demasiado largo
+
+Máximo: 10,000 caracteres.
+```
+
+**Solution**: Split your message into smaller parts
+
+### Timeout
+
+```
+⏱️ Timeout
+
+Comando excedió 1800s.
+```
+
+**Solution**: Command took too long - try a simpler query or increase timeout
+
+### General Error
+
+```
+❌ Error (código: 1)
+```
+
+**Solution**: Check command output for details
+
+---
+
+## Message Formatting
+
+Slack messages support basic formatting:
+
+### Code Blocks
+
+```
+`inline code`
+```
+
+### Preformatted Text
+
+```
+```
+multi-line
+code block
+```
+```
+
+### Bold/Italic
+
+```
+*bold*
+_italic_
+```
+
+---
+
+## Examples
+
+### Product Management
+
+```
+@Claudio crea una initiative en ClickUp para implementar autenticación OAuth
+```
+
+```
+@Claudio lista todas las user stories del sprint actual
+```
+
+### Development
+
+```
+revisa el último PR en GitHub y resume los cambios
+```
+
+```
+busca errores en el código del archivo auth.py
+```
+
+### Communication
+
+```
+envía un mensaje al canal #engineering diciendo que el deploy está listo
+```
+
+### Documentation
+
+```
+crea un documento en Google Docs con las notas de la daily standup
+```
+
+---
+
+## Environment Variables
+
+Complete configuration reference:
+
+```bash
+# Required
+SLACK_BOT_TOKEN=xoxb-...            # Bot User OAuth Token
+SLACK_APP_TOKEN=xapp-...            # App-Level Token (Socket Mode)
+SLACK_ALLOWED_USER_IDS=U123,U456    # Authorized Slack user IDs
+
+# Paths
+CLAUDE_CLI_PATH=claude              # Claude CLI path (default: claude)
+WORKSPACE_PATH=/path/to/workspace   # Working directory (default: cwd)
+
+# Security
+COMMAND_TIMEOUT=1800                # Max command time (default: 1800s)
+MAX_INPUT_LENGTH=10000              # Max message length (default: 10000)
+RATE_LIMIT_REQUESTS=10              # Max requests (default: 10)
+RATE_LIMIT_WINDOW=60                # Rate limit window (default: 60s)
+SKIP_PERMISSIONS=true               # Auto-approve tools (default: true)
+ALLOWED_TOOLS=*                     # Allowed tools (default: *)
+```
+
+---
+
+## Slack App Configuration
+
+### Required Bot Token Scopes
+
+- `chat:write` - Send messages
+- `app_mentions:read` - Read mentions
+- `im:history` - Read DM history
+- `im:read` - Read DM info
+- `im:write` - Send DMs
+
+### Event Subscriptions
+
+Subscribe to bot events:
+
+- `app_mention` - Bot mentioned in channel
+- `message.im` - Direct message to bot
+
+### Slash Commands (Optional)
+
+Create these slash commands:
+
+| Command | Request URL | Description |
+|---------|-------------|-------------|
+| `/claudio` | (handled by Socket Mode) | Execute command |
+| `/claudio-new` | (handled by Socket Mode) | New session |
+| `/claudio-status` | (handled by Socket Mode) | Check status |
+
+### Socket Mode
+
+**Required**: Enable Socket Mode for local development
+
+1. Go to Socket Mode settings
+2. Enable Socket Mode
+3. Generate App-Level Token with `connections:write` scope
+4. Use token as `SLACK_APP_TOKEN`
+
+---
+
+## Logs
+
+Bot logs include user and context information:
+
+```
+[Usuario U123ABC456] Procesando: Lista los archivos...
+[Usuario U123ABC456] Ejecutando: ['claude', '-c', '--dangerously-skip-permissions']
+[Usuario U123ABC456] Completado con código: 0
+```
+
+**Security Logs**
+
+```
+[SEGURIDAD] Usuario no autorizado: U999XYZ789
+[SEGURIDAD] Rate limit excedido: U123ABC456
+```
+
+**Interaction Logs**
+
+```
+[Mención] Usuario U123ABC456 en canal C789DEF012: lista los MCPs...
+[DM] Usuario U123ABC456: ejecuta el script test.py...
+[Slash] Usuario U123ABC456: /claudio status
+```
+
+---
+
+## Best Practices
+
+### Use Threads
+
+When mentioning in channels, bot responds in threads to keep channels clean.
+
+### DM for Private Work
+
+Use DMs for:
+- Sensitive information
+- Personal tasks
+- Testing commands
+
+### Mentions for Team Visibility
+
+Use mentions in channels for:
+- Shared tasks
+- Team updates
+- Collaborative work
+
+### Slash Commands for Quick Actions
+
+Use slash commands for:
+- Fast queries
+- Status checks
+- Session management
+
+---
+
+## Troubleshooting
+
+### Bot Not Responding
+
+1. Check bot is running: `ps aux | grep slack.*bot`
+2. Check logs for errors
+3. Verify `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`
+4. Ensure Socket Mode is enabled
+
+### "Access Denied" Error
+
+1. Get your user ID: `/claudio-status`
+2. Add to `SLACK_ALLOWED_USER_IDS` in `.env`
+3. Restart bot
+
+### Multiple Bot Instances
+
+```bash
+# Kill all instances
+pkill -f "python.*slack.*bot.py"
+rm -f /tmp/slack_claude_bot.lock
+
+# Start fresh
+./channels/slack/start.sh
+```
+
+### Commands Not Working
+
+1. Verify Claude CLI is installed: `claude --version`
+2. Check `CLAUDE_CLI_PATH` in `.env`
+3. Verify workspace path exists
+4. Check bot has necessary permissions

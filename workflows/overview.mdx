@@ -1,0 +1,76 @@
+---
+title: Automated workflows
+description: Learn how Claudio automates multi-step tasks by orchestrating MCPs across ClickUp, Google Workspace, Slack, and more.
+---
+
+Workflows are pre-defined sequences that combine multiple MCPs to automate complex, multi-step tasks. Instead of manually executing each action, you trigger a workflow with a simple prompt and Claudio handles the orchestration.
+
+## How workflows work
+
+Each workflow follows a consistent pattern:
+
+<Steps>
+  <Step title="You provide a trigger">
+    Send a prompt like "Generate the sprint report" or "Create the daily standup notes"
+  </Step>
+  <Step title="Claudio gathers context">
+    Pulls data from multiple sources (ClickUp tasks, Google Sheets metrics, meeting notes)
+  </Step>
+  <Step title="Claudio executes the sequence">
+    Creates documents, updates spreadsheets, sends notifications—all without manual intervention
+  </Step>
+  <Step title="You receive the output">
+    Get links to created documents, summary metrics, or Slack confirmations
+  </Step>
+</Steps>
+
+## Available workflows
+
+<CardGroup cols={2}>
+  <Card title="Daily standup" icon="comments" href="/workflows/daily-standup">
+    Create formatted standup notes and share them with your team in seconds
+  </Card>
+  <Card title="Create initiative" icon="lightbulb" href="/workflows/create-initiative">
+    Build a new initiative with spec document, ClickUp task, and team notifications
+  </Card>
+  <Card title="Sprint report" icon="chart-line" href="/workflows/sprint-report">
+    Generate comprehensive sprint metrics and populate your tracking spreadsheet
+  </Card>
+  <Card title="Funnel analysis" icon="filter" href="/workflows/funnel-analysis">
+    Audit and optimize every stage of your acquisition funnel with data-driven recommendations
+  </Card>
+  <Card title="Automation scripts" icon="clock" href="/workflows/automation-scripts">
+    Scheduled workflows that run automatically via cron jobs
+  </Card>
+</CardGroup>
+
+## Trigger patterns
+
+You can trigger workflows through any of Claudio's channels:
+
+<CodeGroup>
+```bash Terminal
+claude -p "Generate the sprint 9 report"
+```
+
+```text Telegram
+Genera el reporte del sprint 9
+```
+
+```text Slack
+@Claudio create the daily standup notes
+```
+</CodeGroup>
+
+Claudio recognizes natural language variations—you don't need to memorize exact commands.
+
+## When to use workflows
+
+Use workflows for:
+
+- **Recurring tasks** that follow the same structure every time (weekly reports, daily standups)
+- **Multi-tool operations** that require coordinating between ClickUp, Google Workspace, and Slack
+- **Time-sensitive processes** where automation reduces delays (booking confirmations, report generation)
+- **Complex calculations** that aggregate data from multiple sources (sprint metrics, funnel analysis)
+
+For one-off tasks or simple queries, use Claudio's chat interface directly instead of a workflow.

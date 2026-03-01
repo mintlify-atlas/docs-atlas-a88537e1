@@ -1,0 +1,188 @@
+---
+title: Sprint report
+description: Generate comprehensive sprint metrics and automatically populate your performance tracking spreadsheet.
+---
+
+This workflow pulls sprint data from ClickUp, calculates delivery metrics, reads work blocks from Google Sheets, and writes a complete performance report to your tracking spreadsheet.
+
+## MCPs used
+
+- **ClickUp** — Retrieves tasks, story points, statuses, and cycle time data
+- **Google Sheets** — Reads 3-hour work blocks and writes metrics to the main tracking sheet
+- **Slack** *(optional)* — Shares the report summary with the team
+
+## How to trigger
+
+<CodeGroup>
+```bash Terminal
+claude -p "Genera el reporte del sprint 9"
+```
+
+```text Telegram
+Llena el sheets del sprint 10
+```
+
+```text Slack
+@Claudio generate the sprint report for sprint 9
+```
+</CodeGroup>
+
+## Data sources
+
+The workflow uses this Google Spreadsheet:
+
+- **Name**: DS & AI Measuring Performance (Internal)
+- **ID**: `1O7ZL9IzATToktPi9-VXPTfMZWg5Zu92eUyzQyDLGu9c`
+- **Main sheet**: `Data Science & IA` (gid: `200815114`)
+- **Work blocks sheet**: `3-hour work blocks` (gid: `1897775165`)
+
+## What it does
+
+<Steps>
+  <Step title="Identifies the sprint list">
+    Claudio finds the ClickUp list for the specified sprint (e.g., Sprint 9 → list ID `901215476720`).
+  </Step>
+  <Step title="Retrieves all tasks">
+    Pulls tasks from the sprint list with full details including points, status, dates, and subtasks.
+  </Step>
+  <Step title="Calculates ClickUp metrics">
+    Computes points committed, points completed, carry-over, bugs found, cycle time, Say/Do ratio, and quality index.
+  </Step>
+  <Step title="Reads work blocks">
+    Fetches the `3-hour work blocks` sheet and calculates Deep Work % for the sprint period.
+  </Step>
+  <Step title="Calculates historical velocity">
+    Averages points completed across all previous sprints to determine velocity trend.
+  </Step>
+  <Step title="Writes to spreadsheet">
+    Populates all calculated metrics in the appropriate row of the main sheet.
+  </Step>
+</Steps>
+
+## Metrics calculated
+
+### Automated metrics
+
+These are calculated and written automatically:
+
+| Metric | Formula | Source |
+|--------|---------|--------|
+| **Points Committed** | Sum of story points on parent tasks | ClickUp |
+| **Points Completed** | Points on tasks with status type = closed | ClickUp |
+| **Carry-over Points** | Committed − Completed | Calculated |
+| **Avg Cycle Time** | Days from start to done (approximated) | ClickUp timestamps |
+| **Bugs Found** | Count of tasks with "bug" in name | ClickUp |
+| **Say/Do Ratio** | (Completed / Committed) × 100% | Calculated |
+| **Quality Index** | (Bugs / Committed) × 100% | Calculated |
+| **Deep Work %** | (Actual blocks / Max possible blocks) × 100% | Google Sheets |
+| **Historical Velocity** | Average points completed across all sprints | Spreadsheet history |
+
+### Manual inputs required
+
+These columns are left blank for the team to fill in:
+
+- **Team Happiness** (1-5 scale)
+- **Team Pressure** (1-5 scale)
+- **Team Quality** (1-5 scale)
+- **Cognitive Load** (1-5 scale)
+- **Health Score** (average of the above)
+
+<Note>
+Claudio will inform you which metrics require manual input after generating the report.
+</Note>
+
+## Cycle time calculation
+
+Since ClickUp's API doesn't expose full status history, cycle time is approximated:
+
+```python
+# For tasks created before sprint start
+start_date = sprint_start_date
+
+# For tasks created during sprint
+start_date = task.date_created
+
+# For end date, detect reopened tasks
+if task.date_done == sprint_start_date and task.date_updated > task.date_done:
+    end_date = task.date_updated  # Task was reopened
+else:
+    end_date = task.date_done
+
+cycle_time_days = (end_date - start_date).days
+```
+
+<Warning>
+This is an approximation. For precise cycle time tracking, enable time tracking in ClickUp or manually fill the `start_date` field when moving tasks to "In Progress".
+</Warning>
+
+## Deep work calculation
+
+Deep Work % measures how much focused work time the team achieved:
+
+```python
+max_blocks_per_day = 2
+team_members = 4  # Erika, Joel, Evgeny, Santiago
+working_days = 10  # Weekdays in sprint period
+
+max_total = max_blocks_per_day * team_members * working_days
+actual_total = sum(all_blocks_in_sprint_dates)
+
+deep_work_pct = (actual_total / max_total) * 100
+```
+
+Only weekdays (Monday-Friday) within the sprint date range are counted.
+
+## Sprint list IDs
+
+Known sprint lists in ClickUp:
+
+| Sprint | List ID | Dates |
+|--------|---------|-------|
+| Sprint 7 | `901215046507` | 12/29 - 1/11 |
+| Sprint 8 | `901215046511` | 1/12 - 1/25 |
+| Sprint 9 | `901215476720` | 1/26 - 2/8 |
+| Sprint 10 | `901215681128` | 2/9 - 2/22 |
+
+<Tip>
+If Claudio can't find your sprint, check the list ID in ClickUp and update the configuration in `docs/integrations/clickup/config.md`.
+</Tip>
+
+## Expected output
+
+After the workflow completes:
+
+- **Spreadsheet updated** — All automated metrics written to the appropriate row
+- **Terminal summary** — Display of key metrics and list of manual inputs needed
+- **Slack message** *(optional)* — Summary posted to team channel with spreadsheet link
+
+## Per-person breakdown
+
+You can request metrics by team member:
+
+```bash
+claude -p "Genera el reporte del sprint 9 con desglose por persona"
+```
+
+This shows:
+
+- Points completed per assignee
+- Average cycle time per assignee
+- Task distribution across the team
+
+Useful for identifying workload imbalances or bottlenecks.
+
+## Execution checklist
+
+The workflow follows this sequence:
+
+- [ ] Identify sprint list ID in ClickUp
+- [ ] Get all tasks (include_closed=true, subtasks=true)
+- [ ] Calculate Points Committed, Completed, Carry-over
+- [ ] Calculate Avg Cycle Time (with reopened task detection)
+- [ ] Calculate Bugs Found
+- [ ] Calculate Say/Do Ratio and Quality Index
+- [ ] Evaluate Goal Met status
+- [ ] Read `3-hour work blocks` sheet and calculate Deep Work %
+- [ ] Calculate Historical Average Velocity
+- [ ] Write all values to main sheet
+- [ ] Report which metrics need manual input

@@ -1,0 +1,120 @@
+---
+title: Create initiative
+description: Build a new strategic initiative with spec document, ClickUp task, and automatic team notifications.
+---
+
+This workflow helps you create a fully documented initiative with strategic context, success metrics, and proper tracking in ClickUp.
+
+## MCPs used
+
+- **ClickUp** — Creates the initiative task with all required fields
+- **Google Docs** — Generates a detailed spec document
+- **Slack** — Notifies the team in `#product-updates`
+
+## How to trigger
+
+<CodeGroup>
+```bash Terminal
+claude -p "Crea una nueva initiative para mejorar el show-up rate del bot"
+```
+
+```text Telegram
+Crea una initiative para [objetivo]
+```
+
+```text Slack
+@Claudio create a new initiative for improving conversion rates
+```
+</CodeGroup>
+
+## Required inputs
+
+Claudio will ask you to provide these details if not included in your initial prompt:
+
+| Input | Description | Example |
+|-------|-------------|---------|
+| **OKR** | Strategic objective this initiative supports | "Increase conversion 20%" |
+| **Problem** | Quantified problem statement | "We lose 30% of leads due to slow response time" |
+| **Metrics** | Baseline and target measurements | "From 10% to 25% show-up rate" |
+| **Owner** | Person responsible for delivery | "@ignacio.delacuba" |
+
+## What it does
+
+<Steps>
+  <Step title="Validates inputs">
+    Claudio confirms you've provided an OKR, problem statement, metrics, and owner before proceeding.
+  </Step>
+  <Step title="Creates the spec document">
+    Generates a Google Doc with sections for problem definition, proposed solution, success metrics, risks, and timeline.
+  </Step>
+  <Step title="Creates the ClickUp initiative">
+    Adds a new task to the "Approved Initiatives" list (ID: `901213053436`) with:
+    - Title and description
+    - Link to the spec doc
+    - Assigned owner
+    - Custom fields for OKR and metrics
+  </Step>
+  <Step title="Notifies the team">
+    Posts an announcement to `#product-updates` in Slack with the initiative summary and links.
+  </Step>
+</Steps>
+
+## Expected output
+
+After completion, you'll receive:
+
+- **ClickUp initiative link** — Direct URL to the created task
+- **Spec document link** — Google Doc with full initiative details
+- **Slack confirmation** — Message in `#product-updates` with summary
+
+## Spec document structure
+
+The generated Google Doc includes:
+
+- **Executive Summary** — One-paragraph overview
+- **Problem Statement** — Quantified description of the issue
+- **Proposed Solution** — High-level approach
+- **Success Metrics** — Baseline, target, and measurement method
+- **OKR Alignment** — How this supports company objectives
+- **Risks & Assumptions** — Known blockers and dependencies
+- **Timeline** — Estimated milestones
+- **Owner & Stakeholders** — Who's responsible and who needs to be involved
+
+<Tip>
+The spec document serves as the single source of truth for the initiative. Link it in Epics and User Stories to maintain context.
+</Tip>
+
+## ClickUp configuration
+
+This workflow creates initiatives in:
+
+- **List**: P&T - General > Approved Initiatives
+- **List ID**: `901213053436`
+
+Make sure your ClickUp MCP has write access to this list.
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Define clear metrics">
+    Always include baseline and target values with specific measurement methods. "Increase engagement" is vague—"Increase daily active users from 1,000 to 1,500 measured in Mixpanel" is actionable.
+  </Accordion>
+  <Accordion title="Quantify the problem">
+    Use data to justify the initiative. "Users complain about speed" is weak—"Page load time averages 4.2s, causing 35% bounce rate per Google Analytics" is compelling.
+  </Accordion>
+  <Accordion title="Link to company OKRs">
+    Explicitly connect the initiative to a company or department OKR. This helps with prioritization and resource allocation.
+  </Accordion>
+  <Accordion title="Assign a single owner">
+    Initiatives need one person accountable for delivery. This doesn't mean they do all the work—it means they coordinate and are responsible for outcomes.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+After creating an initiative:
+
+1. Break it down into **Epics** that represent major features or phases
+2. Create **User Stories** under each Epic for specific deliverables
+3. Schedule planning sessions with stakeholders to validate the approach
+4. Add the initiative to your roadmap and communicate timeline to the team

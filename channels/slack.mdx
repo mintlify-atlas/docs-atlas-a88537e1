@@ -1,0 +1,382 @@
+---
+title: Slack
+description: Interact with Claudio via direct messages, mentions, or slash commands
+---
+
+Integrate Claudio into your Slack workspace. Send direct messages, mention the bot in channels, or use slash commands to execute tasks through Claude Code CLI.
+
+## Features
+
+- **Direct messages**: Chat with Claudio in DMs
+- **Channel mentions**: `@Claudio` in any channel
+- **Slash commands**: `/claudio`, `/claudio-new`, `/claudio-status`
+- **Thread responses**: Replies appear in threads to keep channels clean
+- **Socket Mode**: No public URL required
+- **User authorization**: Control who can use the bot
+- **Session persistence**: Maintains conversation context
+
+## Slack App setup
+
+<Steps>
+  <Step title="Create a new Slack app">
+    1. Go to [api.slack.com/apps](https://api.slack.com/apps)
+    2. Click **Create New App** → **From scratch**
+    3. Name: `Claudio` (or your preference)
+    4. Choose your workspace
+  </Step>
+
+  <Step title="Configure OAuth & Permissions">
+    Navigate to **OAuth & Permissions** and add these **Bot Token Scopes**:
+
+    | Scope | Purpose |
+    |-------|----------|
+    | `app_mentions:read` | Read when bot is mentioned |
+    | `channels:history` | Read public channel messages |
+    | `channels:read` | View public channels |
+    | `chat:write` | Send messages |
+    | `commands` | Enable slash commands |
+    | `groups:history` | Read private channel messages |
+    | `groups:read` | View private channels |
+    | `im:history` | Read direct messages |
+    | `im:read` | View DMs |
+    | `im:write` | Send DMs |
+    | `users:read` | View user information |
+  </Step>
+
+  <Step title="Enable Socket Mode">
+    1. Go to **Socket Mode** in the sidebar
+    2. Toggle **Enable Socket Mode** to ON
+    3. When prompted to create an App-Level Token:
+       - Token Name: `socket-mode`
+       - Scope: `connections:write`
+       - Click **Generate**
+    4. Copy the token starting with `xapp-` (this is your `SLACK_APP_TOKEN`)
+
+    <Warning>
+      Save this token immediately. You can't view it again after closing the dialog.
+    </Warning>
+  </Step>
+
+  <Step title="Configure Event Subscriptions">
+    1. Go to **Event Subscriptions**
+    2. Toggle **Enable Events** to ON
+    3. Under **Subscribe to bot events**, add:
+       - `app_mention` - When users mention the bot
+       - `message.im` - When users send DMs
+  </Step>
+
+  <Step title="Create Slash Commands (optional)">
+    Go to **Slash Commands** and create these commands:
+
+    | Command | Description | Usage Hint |
+    |---------|-------------|------------|
+    | `/claudio` | Send a message to Claudio | `[your message]` |
+    | `/claudio-new` | Start a new conversation | |
+    | `/claudio-status` | Show bot status | |
+
+    <Note>
+      For Socket Mode, you don't need to provide a Request URL. Leave it blank.
+    </Note>
+  </Step>
+
+  <Step title="Install the app to your workspace">
+    1. Go to **Install App** in the sidebar
+    2. Click **Install to Workspace**
+    3. Review and authorize the permissions
+    4. Copy the **Bot User OAuth Token** starting with `xoxb-`
+  </Step>
+</Steps>
+
+## Local configuration
+
+<Steps>
+  <Step title="Get your Slack user ID">
+    In Slack:
+    1. Click your profile picture
+    2. Select **Profile**
+    3. Click **More** (three dots)
+    4. Select **Copy member ID**
+
+    Your ID will look like `U1234567890`.
+  </Step>
+
+  <Step title="Install dependencies">
+    From the Claudio root directory:
+
+    <CodeGroup>
+    ```bash Mac/Linux
+    source venv/bin/activate
+    pip install -r channels/slack/requirements.txt
+    ```
+
+    ```bash Windows
+    venv\Scripts\activate
+    pip install -r channels\slack\requirements.txt
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Copy the example configuration:
+
+    ```bash
+    cp channels/slack/.env.example channels/slack/.env
+    ```
+
+    Edit `channels/slack/.env`:
+
+    ```bash
+    # Required - Bot User OAuth Token from Slack App
+    SLACK_BOT_TOKEN=xoxb-your-bot-token-here
+
+    # Required - App-Level Token for Socket Mode
+    SLACK_APP_TOKEN=xapp-your-app-token-here
+
+    # Optional - Authorized user IDs (comma-separated)
+    # Leave empty to allow all users (not recommended)
+    SLACK_ALLOWED_USER_IDS=U1234567890,U0987654321
+
+    # Optional - Workspace path
+    WORKSPACE_PATH=/Users/yourname/Dev/claudio
+    ```
+  </Step>
+
+  <Step title="Start the bot">
+    <CodeGroup>
+    ```bash Using start script
+    ./channels/slack/start.sh
+    ```
+
+    ```bash Direct execution
+    python3 channels/slack/bot.py
+    ```
+    </CodeGroup>
+
+    You should see:
+    ```
+    🤖 Bot Claudio de Slack iniciado
+    ================================================
+    El bot escucha:
+      - DMs directos
+      - Menciones (@Claudio) en canales
+      - Comandos: /claudio, /claudio-new, /claudio-status
+    ```
+  </Step>
+</Steps>
+
+## Configuration
+
+### Security settings
+
+```bash .env
+# Timeout for command execution (seconds)
+COMMAND_TIMEOUT=1800
+
+# Maximum input length (characters)
+MAX_INPUT_LENGTH=10000
+
+# Rate limiting
+RATE_LIMIT_REQUESTS=10
+RATE_LIMIT_WINDOW=60
+
+# Skip MCP permission prompts (required for bot)
+SKIP_PERMISSIONS=true
+
+# Allowed tools (* for all, or comma-separated list)
+ALLOWED_TOOLS=*
+```
+
+### Claude CLI settings
+
+```bash .env
+# Path to Claude CLI executable
+CLAUDE_CLI_PATH=claude
+
+# Working directory for command execution
+WORKSPACE_PATH=/Users/yourname/Dev/claudio
+```
+
+## Usage
+
+### Direct messages
+
+Open a DM with the Claudio bot and send a message:
+
+```
+List my open pull requests
+```
+
+The bot responds with the result in the same DM thread.
+
+Source: `channels/slack/bot.py:683-711`
+
+### Mentions in channels
+
+First, invite the bot to the channel:
+
+```
+/invite @Claudio
+```
+
+Then mention it:
+
+```
+@Claudio create a ClickUp user story for the login feature
+```
+
+The bot replies in a thread to keep the channel clean.
+
+Source: `channels/slack/bot.py:658-680`
+
+### Slash commands
+
+Use slash commands from anywhere in Slack:
+
+| Command | Example |
+|---------|----------|
+| `/claudio` | `/claudio show me today's standup notes` |
+| `/claudio-new` | `/claudio-new` (starts fresh conversation) |
+| `/claudio-status` | `/claudio-status` (shows bot health) |
+
+Source: `channels/slack/bot.py:716-784`
+
+## Session management
+
+The bot maintains separate conversation sessions per user. Each message continues the previous context:
+
+```
+You: Create an epic for user authentication
+Claudio: [creates epic with ID 123]
+
+You: Add a user story for login
+Claudio: [adds story to epic 123]
+```
+
+Use `/claudio-new` to start a fresh conversation.
+
+Source: `channels/slack/bot.py:502-503`
+
+## Security features
+
+### User authorization
+
+Control access by setting `SLACK_ALLOWED_USER_IDS`:
+
+```bash
+# Single user
+SLACK_ALLOWED_USER_IDS=U1234567890
+
+# Multiple users
+SLACK_ALLOWED_USER_IDS=U1234567890,U0987654321,U1122334455
+```
+
+<Warning>
+  If `SLACK_ALLOWED_USER_IDS` is empty, **anyone** in your workspace can use the bot. This is not recommended for production.
+</Warning>
+
+Source: `channels/slack/bot.py:74-78`
+
+### Rate limiting
+
+Prevents spam by limiting requests per user:
+
+- Default: 10 requests per 60 seconds
+- Configurable via `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW`
+- Users exceeding limits see: "⏱️ Rate limit excedido"
+
+Source: `channels/slack/bot.py:170-190`
+
+### Command timeout
+
+Long-running commands are automatically terminated after `COMMAND_TIMEOUT` seconds (default: 1800).
+
+Source: `channels/slack/bot.py:66`
+
+## Stopping the bot
+
+<CodeGroup>
+```bash Keyboard interrupt
+Ctrl+C
+```
+
+```bash Kill processes
+pkill -f "python.*slack.*bot.py"
+rm -f /tmp/slack_claude_bot.lock
+```
+</CodeGroup>
+
+## Troubleshooting
+
+### "Socket Mode is not enabled"
+
+Ensure Socket Mode is enabled in your Slack App settings under **Socket Mode**.
+
+### "not_allowed_token_type"
+
+You're using the wrong token. Verify:
+
+- `SLACK_BOT_TOKEN` starts with `xoxb-`
+- `SLACK_APP_TOKEN` starts with `xapp-`
+
+### "missing_scope"
+
+1. Go to **OAuth & Permissions** in your Slack App
+2. Add the missing scope under **Bot Token Scopes**
+3. Reinstall the app to your workspace
+
+### Bot doesn't respond to mentions
+
+1. Verify `app_mention` event is subscribed in **Event Subscriptions**
+2. Invite the bot to the channel: `/invite @Claudio`
+3. Check bot logs for errors
+
+### Bot doesn't respond to DMs
+
+1. Verify `message.im` event is subscribed in **Event Subscriptions**
+2. Reinstall the app if you just added this event
+3. Check bot logs for authorization errors
+
+### Bot not appearing in workspace
+
+1. Go to **Install App** in Slack App settings
+2. Click **Reinstall to Workspace**
+3. Search for the bot by name in Slack
+
+## Architecture
+
+```
+Slack User
+    |
+    v
+[DM / Mention / Slash Command]
+    |
+    v
+Socket Mode (WebSocket)
+    |
+    v
+Slack Bolt App (bot.py)
+    |
+    v
+ClaudeCodeExecutor  ---->  Claude Code CLI
+    |                             |
+    v                             v
+Slack API                   ~/.claude.json
+(threading)                       |
+                                  v
+                            MCPs (ClickUp, GitHub, etc.)
+```
+
+The bot uses Socket Mode (WebSocket) instead of webhooks, eliminating the need for a public URL. Commands are executed using `subprocess.run()` with pipe input for better MCP compatibility.
+
+Source: `channels/slack/bot.py:543-653`
+
+## Differences from Telegram
+
+| Feature | Telegram | Slack |
+|---------|----------|-------|
+| **Connection** | Long polling | Socket Mode (WebSocket) |
+| **Library** | python-telegram-bot | slack-bolt |
+| **Threading** | asyncio | Python threading |
+| **Execution** | `-p` flag | Pipe input |
+| **Replies** | Same chat | Threaded responses |
+| **Commands** | `/start`, `/help` | `/claudio`, `/claudio-status` |

@@ -1,0 +1,716 @@
+---
+title: Architecture
+description: How Claudio works—channels, brain, and hands working together
+---
+
+# Claudio architecture
+
+Claudio follows a simple yet powerful architecture: **Channels** (mouths) receive your requests, the **Brain** (documentation and workflows) provides context and instructions, and **Hands** (MCPs) execute actions across your tools.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    CHANNELS (Mouths)                     │
+│                                                          │
+│  Terminal    Telegram    Slack    Web Dashboard         │
+│     │            │          │            │              │
+└─────┼────────────┼──────────┼────────────┼──────────────┘
+      │            │          │            │
+      └────────────┴──────────┴────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                    BRAIN (Context)                       │
+│                                                          │
+│  CLAUDE.md  →  Identity, rules, behavior                │
+│  docs/workflows/  →  Multi-step workflows               │
+│  docs/integrations/  →  MCP guides & templates          │
+│  docs/design-system/  →  UI/UX standards                │
+└─────────────────────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                    HANDS (MCPs)                          │
+│                                                          │
+│  ClickUp   GitHub   Slack   Docs   Sheets   BigQuery    │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Channels: The mouths
+
+Channels are the interfaces through which you interact with Claudio. Each channel connects to the same brain and hands, ensuring consistent behavior regardless of how you communicate.
+
+### Terminal (Cursor IDE)
+
+The most direct way to use Claudio for developers already working in Cursor.
+
+**Implementation**: Native Cursor chat interface with MCP configuration in `~/.cursor/mcp.json`
+
+**Use cases**:
+- Quick queries while coding
+- Creating User Stories from IDE
+- Checking GitHub PRs without context switching
+
+**Code reference**: Configuration in `mcp/cursor-config.json`
+
+### Telegram bot
+
+Mobile-first interface for async team members and on-the-go productivity.
+
+**Implementation**: Python bot using `python-telegram-bot` library, executing commands via Claude Code CLI subprocess.
+
+**Architecture**:
+```python
+# channels/telegram/bot.py
+
+class ClaudeCodeExecutor:
+    async def execute_streaming(self, query: str, session_id: str):
+        cmd = [self.claude_path]
+        
+        if continue_session:
+            cmd.append('-c')  # Continue previous conversation
+        
+        cmd.extend(['-p', query])  # Pass user query
+        
+        # Execute with MCPs configured in ~/.claude.json
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=self.workspace_path
+        )
+```
+
+**Key features**:
+- **Long polling**: Fetches messages from Telegram API
+- **Session management**: Maintains conversation context per user via `-c` flag
+- **Security**: User whitelist via `ALLOWED_USER_IDS`
+- **Rate limiting**: 10 requests per minute per user
+- **Voice support**: OpenAI Whisper transcription for voice messages
+
+**Code reference**: `channels/telegram/bot.py:1-400`
+
+<Note>
+  The Telegram bot supports voice messages—send a voice note and it will be transcribed via OpenAI Whisper API before being processed.
+</Note>
+
+### Slack bot
+
+Team-wide integration for collaborative workflows and notifications.
+
+**Implementation**: Python bot using `slack-bolt` library with Socket Mode for real-time events.
+
+**Architecture**:
+```python
+# channels/slack/bot.py
+
+from slack_bolt.async_app import AsyncApp
+from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
+
+app = AsyncApp(token=SLACK_BOT_TOKEN)
+
+# Handle DMs
+@app.event("message")
+async def handle_dm(event, say):
+    user_id = event["user"]
+    message = event["text"]
+    
+    # Execute with Claude Code CLI
+    response = await executor.execute_streaming(message, user_id)
+    await say(response)
+
+# Handle mentions
+@app.event("app_mention")
+async def handle_mention(event, say):
+    # Respond in thread
+    await say(response, thread_ts=event["ts"])
+
+# Start Socket Mode handler
+handler = AsyncSocketModeHandler(app, SLACK_APP_TOKEN)
+await handler.start_async()
+```
+
+**Key features**:
+- **Socket Mode**: WebSocket connection (no public URL needed)
+- **Thread support**: Responds in threads to keep channels clean
+- **DMs and mentions**: Works in direct messages and when mentioned in channels
+- **Slash commands**: `/claudio`, `/claudio-new`, `/claudio-status`
+
+**Code reference**: `channels/slack/bot.py:1-350`
+
+<Tip>
+  Socket Mode means you don't need to expose a public webhook—the bot connects to Slack via WebSocket.
+</Tip>
+
+### Web dashboard
+
+Visual interface for monitoring MCPs and testing workflows.
+
+**Implementation**: FastAPI backend with Jinja2 templates and WebSocket for real-time chat.
+
+**Architecture**:
+```python
+# channels/web/app.py
+
+from fastapi import FastAPI, WebSocket
+
+app = FastAPI()
+
+@app.get("/")
+async def dashboard(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})
+
+@app.get("/api/mcps")
+async def list_mcps():
+    config = json.loads(MCP_CONFIG_PATH.read_text())
+    return {"mcps": config["mcpServers"]}
+
+@app.websocket("/ws/chat")
+async def websocket_chat(websocket: WebSocket):
+    await websocket.accept()
+    executor = ClaudeCodeExecutor()
+    
+    while True:
+        message = await websocket.receive_text()
+        
+        async def stream_callback(chunk):
+            await websocket.send_text(chunk)
+        
+        await executor.execute_streaming(message, stream_callback)
+```
+
+**Key features**:
+- **MCP monitoring**: View all configured MCPs and their status
+- **Health checks**: Test connectivity to each MCP
+- **Real-time chat**: WebSocket streaming for live responses
+- **Documentation browser**: Access workflows and integration guides
+
+**Code reference**: `channels/web/app.py:1-200`
+
+**URL**: `http://localhost:8000`
+
+## Brain: The context
+
+The brain is a collection of markdown files that define Claudio's identity, behavior, and knowledge. When you send a request, Claudio reads relevant documentation to understand how to respond.
+
+### CLAUDE.md: Identity and rules
+
+The core instructions file that defines who Claudio is and how it should behave.
+
+**Location**: `CLAUDE.md` (root directory)
+
+**Contents**:
+
+```markdown
+# Claudio - Asistente de Productividad PropHero
+
+## Tu Identidad
+- **Nombre**: Claudio
+- **Rol**: Asistente de productividad y ejecución técnica
+- **Usuarios**: Product Managers, Engineers/Devs
+- **Canales**: Terminal, Telegram, Slack, Web
+
+## Personalidad
+- **Tono**: Profesional pero cercano, directo y orientado a resultados
+- **Idioma**: Español por defecto, inglés si el usuario lo prefiere
+- **Estilo**: Conciso, va al grano
+
+## Principios de Comportamiento
+1. **Ejecución > Explicación**: Prioriza hacer sobre explicar
+2. **Confirmar antes de crear**: Si vas a crear algo, confirma primero
+3. **Contexto es rey**: Siempre busca el contexto antes de actuar
+```
+
+**Code reference**: `CLAUDE.md:1-366`
+
+<Info>
+  CLAUDE.md is automatically loaded into Claude's context when using any channel. It acts as Claudio's personality and operating manual.
+</Info>
+
+### Workflows: Multi-step processes
+
+Predefined workflows that combine multiple MCPs to accomplish complex tasks.
+
+**Location**: `docs/workflows/`
+
+**Structure**:
+```
+docs/workflows/
+├── product/
+│   ├── daily-standup.md       # Google Docs + Slack
+│   ├── create-initiative.md   # ClickUp + Google Docs + Slack
+│   └── sprint-report.md       # ClickUp + Google Sheets + Slack
+├── revenue/
+│   ├── funnel-master.md       # Google Sheets + BigQuery
+│   └── hook-script-creator.md # Google Docs
+└── monthly-ds-ai-report.md    # ClickUp + Google Docs
+```
+
+**Example workflow**: Daily standup
+
+```markdown
+# Daily Standup Workflow
+
+## MCPs Utilizados
+- Google Docs (crear notas)
+- Slack (compartir link)
+
+## Pasos
+1. Crear documento en Google Docs con template
+2. Obtener link del documento
+3. Enviar mensaje a canal de Slack con el link
+
+## Trigger
+"Crea las notas para la daily de hoy"
+```
+
+**Code reference**: `docs/workflows/product/daily-standup.md:1-44`
+
+### Integration guides: MCP documentation
+
+Detailed guides for each MCP, including available tools, configuration, and templates.
+
+**Location**: `docs/integrations/`
+
+**Structure**:
+```
+docs/integrations/
+├── clickup/
+│   ├── guide.md           # Tools and workflows
+│   ├── config.md          # List IDs and configuration
+│   └── templates/
+│       ├── initiative.md  # Template for Initiatives
+│       ├── epic.md        # Template for Epics
+│       └── user-story.md  # Template for User Stories
+├── github/guide.md
+├── slack/guide.md
+├── google-docs/guide.md
+└── google-sheets/guide.md
+```
+
+**Example**: ClickUp guide excerpt
+
+```markdown
+# ClickUp Integration
+
+## Herramientas Disponibles
+| Tool | Descripción |
+|------|-------------|
+| `get_workspace_tasks` | Buscar tareas por lista |
+| `get_task` | Obtener detalles de una tarea |
+| `create_task` | Crear nueva tarea |
+
+## Workflow: Crear User Story
+1. Buscar contexto (Initiative)
+2. Buscar Epic relacionado
+3. Crear User Story con template
+```
+
+**Code reference**: `docs/integrations/clickup/guide.md:1-78`
+
+<Warning>
+  ClickUp List IDs change every quarter. Update `docs/integrations/clickup/config.md` at the start of each quarter with new Epic list IDs.
+</Warning>
+
+### Design system: UI/UX standards
+
+PropHero's design tokens and component guidelines for consistent UI feedback.
+
+**Location**: `docs/design-system/reference.md`
+
+**Usage**: When Claudio reviews UI or suggests improvements, it references this file to ensure consistency with PropHero's design system.
+
+## Hands: The MCPs
+
+Model Context Protocol (MCP) servers give Claudio the ability to read and write data across your tools. Each MCP exposes specific tools that Claudio can call.
+
+### MCP configuration
+
+MCPs are configured in JSON files that specify the command to run, arguments, and environment variables.
+
+**Location**: `mcp/cursor-config.json` (for Cursor) or `~/.claude.json` (for Claude Code CLI)
+
+**Format**:
+```json
+{
+  "mcpServers": {
+    "clickup": {
+      "command": "npx",
+      "args": ["-y", "@taazkareem/clickup-mcp-server@latest"],
+      "env": {
+        "CLICKUP_API_KEY": "pk_...",
+        "CLICKUP_TEAM_ID": "...",
+        "CLICKUP_MCP_LICENSE_KEY": "...",
+        "DOCUMENT_SUPPORT": "true"
+      }
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "slack-mcp-server@latest", "--transport", "stdio"],
+      "env": {
+        "SLACK_MCP_XOXC_TOKEN": "xoxc-...",
+        "SLACK_MCP_XOXD_TOKEN": "xoxd-..."
+      }
+    },
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer YOUR_GITHUB_COPILOT_TOKEN"
+      }
+    }
+  }
+}
+```
+
+**Code reference**: `mcp/cursor-config.json:1-55`
+
+### Available MCPs
+
+<CardGroup cols={2}>
+  <Card title="ClickUp MCP" icon="check-circle">
+    **Package**: `@taazkareem/clickup-mcp-server`
+    
+    **Tools**:
+    - `get_workspace_hierarchy` - View workspace structure
+    - `get_workspace_tasks` - Query tasks by list
+    - `get_task` - Get task details
+    - `create_task` - Create new task
+    - `update_task` - Update existing task
+    
+    **Use cases**: Create User Stories, query Initiatives, track sprint progress
+  </Card>
+
+  <Card title="GitHub MCP" icon="code-branch">
+    **Requires**: GitHub Copilot subscription
+    
+    **URL**: `https://api.githubcopilot.com/mcp/`
+    
+    **Tools**:
+    - List repositories
+    - Query pull requests
+    - Create issues
+    - View code and diffs
+    
+    **Use cases**: Check PR status, create issues from ClickUp tasks
+  </Card>
+
+  <Card title="Slack MCP" icon="message">
+    **Package**: `slack-mcp-server`
+    
+    **Tools**:
+    - Read messages from channels
+    - Post messages
+    - List channels
+    - Get user info
+    
+    **Use cases**: Send daily standup notifications, post sprint reports
+  </Card>
+
+  <Card title="Google Docs MCP" icon="file">
+    **Type**: Local Node.js server
+    
+    **Tools**:
+    - Create documents
+    - Read document content
+    - Update documents
+    - Share documents
+    
+    **Use cases**: Create spec documents, meeting notes, documentation
+  </Card>
+
+  <Card title="Google Sheets MCP" icon="table">
+    **Type**: Local Node.js server
+    
+    **Tools**:
+    - Read spreadsheet data
+    - Write to sheets
+    - Query ranges
+    - Format cells
+    
+    **Use cases**: Generate reports, analyze metrics, track KPIs
+  </Card>
+
+  <Card title="Granola MCP" icon="microphone">
+    **Type**: Python module
+    
+    **Tools**:
+    - List meetings
+    - Read transcriptions
+    - Get meeting notes
+    
+    **Use cases**: Access meeting transcripts, extract action items
+  </Card>
+</CardGroup>
+
+### How MCPs are called
+
+When you send a request, here's what happens:
+
+<Steps>
+  <Step title="Parse user intent">
+    Claudio reads your message and determines which MCPs are needed
+    
+    Example: "Create a user story for login" → needs ClickUp MCP
+  </Step>
+
+  <Step title="Gather context from brain">
+    Loads relevant documentation:
+    - `CLAUDE.md` for behavior rules
+    - `docs/integrations/clickup/guide.md` for ClickUp tools
+    - `docs/integrations/clickup/templates/user-story.md` for template
+  </Step>
+
+  <Step title="Execute MCP tools">
+    Calls MCP tools in sequence:
+    ```python
+    # 1. Find related Initiative
+    tasks = await clickup.get_workspace_tasks(
+        list_ids=["901213053436"],  # Initiatives list
+        search="login"
+    )
+    
+    # 2. Find related Epic
+    epics = await clickup.get_workspace_tasks(
+        list_ids=["901215396098"],  # Q1 2026 Epics
+        search="authentication"
+    )
+    
+    # 3. Create User Story
+    task = await clickup.create_task(
+        listId="901213056238",  # Sprint Backlog
+        name="🎯 Google OAuth Login",
+        markdown_description=template_filled
+    )
+    ```
+  </Step>
+
+  <Step title="Return result">
+    Formats response according to `CLAUDE.md` rules:
+    ```
+    ✅ Created User Story: "Google OAuth Login"
+    📎 https://app.clickup.com/t/abc123
+    💡 Next: Assign to a developer and add to current sprint
+    ```
+  </Step>
+</Steps>
+
+## Automated scripts
+
+For recurring workflows, Claudio includes bash scripts that run on cron schedules.
+
+**Location**: `scripts/`
+
+### Weekly bot report
+
+Generates and emails a weekly performance report for PropHero's WhatsApp bot.
+
+**File**: `scripts/weekly-bot-report.sh`
+
+**Schedule**: Every Monday at 9:00 AM
+
+**Implementation**:
+```bash
+#!/bin/bash
+set -e
+
+WORKSPACE="/path/to/claudio"
+CLAUDE_BIN="claude"
+LOG_FILE="$WORKSPACE/scripts/logs/weekly-bot-report.log"
+
+cd "$WORKSPACE"
+
+$CLAUDE_BIN --dangerously-skip-permissions -p "Genera el reporte semanal 
+del bot de WhatsApp usando los datos del spreadsheet Full Funnel Performance.
+
+Incluye estas métricas para la última semana vs anterior (WoW):
+- Nuevos Leads
+- Group Calls Booked
+- Show Up Rate
+
+Manda el reporte por email en formato HTML a ignacio.delacuba@prophero.com" \
+  2>&1 | tee -a "$LOG_FILE"
+```
+
+**Code reference**: `scripts/weekly-bot-report.sh:1-40`
+
+**MCPs used**: Google Sheets (read metrics), Gmail (send email)
+
+### Monthly DS&AI report
+
+Generates a monthly review of the Data Science & AI squad's progress.
+
+**File**: `scripts/monthly-ds-ai-report.sh`
+
+**Schedule**: 1st of each month at 10:00 AM
+
+**MCPs used**: ClickUp (query tasks), Google Docs (create report)
+
+### Cron setup
+
+To enable automated reports:
+
+```bash
+crontab -e
+
+# Weekly bot report — Mondays at 9 AM
+0 9 * * 1 /path/to/claudio/scripts/weekly-bot-report.sh
+
+# Monthly DS&AI report — 1st of month at 10 AM
+0 10 1 * * /path/to/claudio/scripts/monthly-ds-ai-report.sh
+```
+
+<Tip>
+  Logs are written to `scripts/logs/` for debugging. Check them if automated reports fail.
+</Tip>
+
+## Security considerations
+
+### User authentication
+
+Each channel implements user whitelisting:
+
+**Telegram**:
+```bash
+ALLOWED_USER_IDS=123456789,987654321
+```
+
+**Slack**:
+```bash
+SLACK_ALLOWED_USER_IDS=U1234567890,U0987654321
+```
+
+**Terminal/Web**: Relies on system-level authentication
+
+### Rate limiting
+
+Bot channels enforce rate limits to prevent abuse:
+
+```python
+# Default: 10 requests per 60 seconds per user
+RATE_LIMIT_REQUESTS = 10
+RATE_LIMIT_WINDOW = 60
+
+# Track requests per user
+user_request_times[user_id].append(current_time)
+
+# Check if over limit
+if len(recent_requests) > RATE_LIMIT_REQUESTS:
+    raise RateLimitError()
+```
+
+### Command timeout
+
+Long-running commands are killed after a timeout:
+
+```python
+COMMAND_TIMEOUT = 1800  # 30 minutes
+
+try:
+    await asyncio.wait_for(process.wait(), timeout=COMMAND_TIMEOUT)
+except asyncio.TimeoutError:
+    process.kill()
+    raise CommandTimeoutError()
+```
+
+### Permissions
+
+Bot channels use `--dangerously-skip-permissions` flag to avoid interactive prompts, but this requires careful configuration:
+
+<Warning>
+  Only use `--dangerously-skip-permissions` in trusted environments with proper user authentication. All bot channels verify user IDs before executing commands.
+</Warning>
+
+## Extension points
+
+Claudio is designed to be extended with new capabilities:
+
+### Add a new MCP
+
+<Steps>
+  <Step title="Add config">
+    Update `mcp/cursor-config.json` with the new MCP server
+  </Step>
+  <Step title="Create guide">
+    Add documentation: `docs/integrations/{name}/guide.md`
+  </Step>
+  <Step title="Update CLAUDE.md">
+    Add the new MCP to the list of available tools
+  </Step>
+</Steps>
+
+### Add a new workflow
+
+<Steps>
+  <Step title="Create workflow file">
+    Add markdown file: `docs/workflows/{area}/{name}.md`
+  </Step>
+  <Step title="Document MCPs used">
+    List which MCPs the workflow combines
+  </Step>
+  <Step title="Define trigger phrase">
+    Specify the natural language command that triggers the workflow
+  </Step>
+</Steps>
+
+### Add a new channel
+
+<Steps>
+  <Step title="Create channel directory">
+    ```bash
+    mkdir -p channels/{name}
+    cd channels/{name}
+    ```
+  </Step>
+  <Step title="Implement bot logic">
+    Create `bot.py` that calls Claude Code CLI:
+    ```python
+    async def execute_command(query: str):
+        cmd = ["claude", "-p", query]
+        process = await asyncio.create_subprocess_exec(*cmd)
+        stdout, stderr = await process.communicate()
+        return stdout.decode()
+    ```
+  </Step>
+  <Step title="Add dependencies and scripts">
+    - `requirements.txt` for Python packages
+    - `start.sh` for launching the bot
+    - `.env.example` for configuration template
+  </Step>
+  <Step title="Document setup">
+    Create `README.md` with setup instructions
+  </Step>
+</Steps>
+
+## Maintenance
+
+Regular maintenance tasks to keep Claudio running smoothly:
+
+<CardGroup cols={2}>
+  <Card title="Quarterly: Update ClickUp IDs" icon="calendar">
+    Epic list IDs change each quarter. Update `docs/integrations/clickup/config.md` with new Q2, Q3, etc. list IDs.
+  </Card>
+  
+  <Card title="As needed: MCP updates" icon="refresh">
+    When MCP servers update with new tools or breaking changes, update guides in `docs/integrations/` and configs in `mcp/`.
+  </Card>
+  
+  <Card title="As needed: Behavior changes" icon="brain">
+    If Claudio's personality or rules need adjustment, edit `CLAUDE.md` and all channels will inherit the changes.
+  </Card>
+  
+  <Card title="Monthly: Review logs" icon="file-lines">
+    Check script logs in `scripts/logs/` to ensure automated reports are running successfully.
+  </Card>
+</CardGroup>
+
+## What's next?
+
+Now that you understand Claudio's architecture, you can:
+
+- **Customize workflows** for your team's specific needs
+- **Add new MCPs** to connect more tools
+- **Create custom channels** for different interfaces
+- **Extend the brain** with team-specific knowledge
+
+<Card title="Back to Quickstart" icon="rocket" href="/quickstart">
+  Ready to start using Claudio? Head back to the quickstart guide
+</Card>

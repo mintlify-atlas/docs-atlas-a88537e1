@@ -1,0 +1,115 @@
+---
+title: Introduction to Claudio
+description: AI-powered productivity assistant for PropHero's Product & Technology team
+---
+
+# Meet Claudio
+
+Claudio is an AI-powered productivity assistant built specifically for PropHero's Product & Technology team. It connects your development tools—ClickUp, GitHub, Slack, Google Docs, and more—to automate repetitive tasks and let you focus on what matters: building great products.
+
+<Info>
+  **Built for async-first teams**: Interact with Claudio via Terminal, Telegram, Slack, or Web Dashboard—wherever you work.
+</Info>
+
+## Why Claudio?
+
+The P&T team was spending 8-10 hours per week on administrative overhead: creating User Stories, updating ClickUp, switching between tools, and maintaining documentation. Claudio automates these workflows while enforcing best practices and templates.
+
+<CardGroup cols={3}>
+  <Card title="Save time" icon="clock">
+    Reduce time spent on administrative tasks by 40%. Create User Stories in 2 minutes instead of 30.
+  </Card>
+  <Card title="Enforce standards" icon="check-circle">
+    Automatically use templates and best practices. Increase artifact quality from 65% to 90%.
+  </Card>
+  <Card title="Work anywhere" icon="mobile">
+    Execute workflows from Terminal, Telegram, Slack, or Web. True async-first productivity.
+  </Card>
+</CardGroup>
+
+## What can Claudio do?
+
+Claudio connects to your tools through MCPs (Model Context Protocol) servers, giving it hands-on access to:
+
+### Product management
+- **Create Initiatives, Epics, and User Stories** in ClickUp with proper templates
+- **Query tasks and track progress** across sprints
+- **Generate sprint reports** automatically from ClickUp data
+
+### Development workflows
+- **Check GitHub PRs and issues** without leaving your chat
+- **Create and update GitHub issues** with context from ClickUp
+- **Execute terminal commands** in your workspace
+
+### Team communication
+- **Post updates to Slack channels** for daily standups and reports
+- **Create and share Google Docs** with team meeting notes
+- **Send automated reports** via email from scheduled scripts
+
+### Data and insights
+- **Query BigQuery** for funnel analysis and metrics
+- **Access Google Sheets** for performance dashboards
+- **Retrieve meeting notes** from Granola transcriptions
+
+<Note>
+  Claudio follows the "Execution > Explanation" principle: it prioritizes doing over talking, always confirms before creating, and provides concise summaries.
+</Note>
+
+## Real-world impact
+
+Based on PropHero's Q1 2026 initiative goals:
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Time to create User Story | 25-30 min | 5 min | 80% faster |
+| User Story quality rate | 65% | 90% | +25 points |
+| Admin time per week | 8-10 hrs | 5 hrs | 40% reduction |
+| Context switches per day | 15-20 | 8-10 | 50% reduction |
+
+## How it works
+
+Claudio follows a simple architecture:
+
+```
+Channels (Mouths) → Brain (Docs/Workflows) → Hands (MCPs)
+     ↓                      ↓                      ↓
+  Terminal            CLAUDE.md              ClickUp MCP
+  Telegram           Workflows               GitHub MCP
+  Slack              Templates               Slack MCP
+  Web                                         Google Docs MCP
+```
+
+<Steps>
+  <Step title="You send a request">
+    From any channel: "Create a user story for login feature"
+  </Step>
+  <Step title="Claudio reads context">
+    Checks CLAUDE.md for identity and rules, looks up relevant templates and workflows
+  </Step>
+  <Step title="Claudio executes with MCPs">
+    Uses ClickUp MCP to query Initiative, creates User Story with proper template
+  </Step>
+  <Step title="You get results">
+    Receives link to created User Story with full context and proper formatting
+  </Step>
+</Steps>
+
+## Who uses Claudio?
+
+- **Product Managers**: Create Initiatives and Epics, generate sprint reports, track progress
+- **Engineers**: Query GitHub PRs, create issues, execute development workflows
+- **DS & AI Squad**: Access BigQuery data, analyze funnels, create data-driven reports
+- **Everyone**: Daily standups, meeting notes, team communication
+
+## Get started
+
+Ready to boost your productivity? Continue to the [Quickstart](/quickstart) guide to set up Claudio in 5 minutes.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Set up Claudio and send your first request in 5 minutes
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture">
+    Understand how Claudio works under the hood
+  </Card>
+</CardGroup>

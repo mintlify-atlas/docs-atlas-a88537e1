@@ -1,0 +1,312 @@
+---
+title: Security
+description: Protect your Claudio instance with rate limiting, user authorization, and timeout controls
+---
+
+Claudio includes multiple security layers to prevent unauthorized access and abuse. Configure these settings in your `.env` file.
+
+<Warning>
+  **Never deploy Claudio without configuring security settings.** An unsecured bot allows anyone to execute commands on your system.
+</Warning>
+
+## User authorization
+
+### Telegram authorization
+
+<ParamField path="ALLOWED_USER_IDS" type="string" required>
+  Comma-separated list of authorized Telegram user IDs.
+  
+  ```bash
+  ALLOWED_USER_IDS=123456789,987654321
+  ```
+  
+  <Warning>
+    **The Telegram bot will not start if this is empty.** This prevents accidental public exposure of your system.
+  </Warning>
+  
+  **How to get your Telegram user ID:**
+  
+  1. Message [@userinfobot](https://t.me/userinfobot) on Telegram
+  2. Or use the `/myid` command with your bot (requires temporarily allowing all users)
+  3. Add the ID to `ALLOWED_USER_IDS` in `.env`
+  
+  **Example:**
+  ```bash
+  # Single user
+  ALLOWED_USER_IDS=123456789
+  
+  # Multiple users
+  ALLOWED_USER_IDS=123456789,987654321,555555555
+  ```
+</ParamField>
+
+### Slack authorization
+
+<ParamField path="SLACK_ALLOWED_USER_IDS" type="string">
+  Comma-separated list of authorized Slack user IDs (start with `U`).
+  
+  ```bash
+  SLACK_ALLOWED_USER_IDS=U1234567890,U0987654321
+  ```
+  
+  <Note>
+    Unlike Telegram, this is optional. If empty, all workspace members can use the bot.
+  </Note>
+  
+  **How to get Slack user IDs:**
+  
+  1. Use the `/claudio-status` command to see your user ID
+  2. Or click a user's profile → More → Copy member ID
+  3. Add IDs to `SLACK_ALLOWED_USER_IDS`
+  
+  **Example:**
+  ```bash
+  SLACK_ALLOWED_USER_IDS=U1234567890,U0987654321
+  ```
+</ParamField>
+
+## Rate limiting
+
+Protect against spam and DoS attacks by limiting how many requests users can make.
+
+<ParamField path="RATE_LIMIT_REQUESTS" type="number" default="10">
+  Maximum number of requests allowed per time window.
+  
+  ```bash
+  RATE_LIMIT_REQUESTS=10
+  ```
+  
+  When a user exceeds this limit, they receive an error message and must wait for the window to reset.
+</ParamField>
+
+<ParamField path="RATE_LIMIT_WINDOW" type="number" default="60">
+  Time window in seconds for rate limiting.
+  
+  ```bash
+  RATE_LIMIT_WINDOW=60
+  ```
+  
+  Default allows 10 requests per 60 seconds (1 minute). Adjust both values together:
+  
+  ```bash
+  # Stricter: 5 requests per 30 seconds
+  RATE_LIMIT_REQUESTS=5
+  RATE_LIMIT_WINDOW=30
+  
+  # More lenient: 20 requests per 2 minutes
+  RATE_LIMIT_REQUESTS=20
+  RATE_LIMIT_WINDOW=120
+  ```
+</ParamField>
+
+### How rate limiting works
+
+Claudio tracks timestamps of recent requests for each user:
+
+1. User sends a message
+2. Claudio checks how many requests they've made in the current window
+3. If under the limit, the request is processed and logged
+4. If over the limit, the request is rejected with a countdown timer
+5. Old timestamps outside the window are automatically cleaned up
+
+Implementation details:
+- Separate tracking per user (one user can't block another)
+- Automatic cleanup of expired timestamps
+- Clear error messages showing wait time
+
+```python
+# From bot source code (bot.py:453-489)
+if request_count >= RATE_LIMIT_REQUESTS:
+    oldest_timestamp = min(rate_limit_tracker[user_id])
+    time_until_reset = RATE_LIMIT_WINDOW - (current_time - oldest_timestamp)
+    return False, max(0, time_until_reset)
+```
+
+## Execution timeouts
+
+<ParamField path="COMMAND_TIMEOUT" type="number" default="1800">
+  Maximum execution time for commands in seconds.
+  
+  ```bash
+  COMMAND_TIMEOUT=1800
+  ```
+  
+  <Warning>
+    **Critical security feature.** Prevents malicious or buggy commands from running indefinitely and blocking your system.
+  </Warning>
+  
+  When a command exceeds this timeout:
+  1. The process is killed automatically
+  2. User receives a timeout error message
+  3. Resources are cleaned up
+  
+  Default is 1800 seconds (30 minutes). Adjust based on your use case:
+  
+  ```bash
+  # Quick tasks only (5 minutes)
+  COMMAND_TIMEOUT=300
+  
+  # Long-running tasks (1 hour)
+  COMMAND_TIMEOUT=3600
+  ```
+</ParamField>
+
+## Input validation
+
+<ParamField path="MAX_INPUT_LENGTH" type="number" default="10000">
+  Maximum length of user messages in characters.
+  
+  ```bash
+  MAX_INPUT_LENGTH=10000
+  ```
+  
+  Prevents DoS attacks from extremely long messages that could:
+  - Consume excessive memory
+  - Overload the Claude API
+  - Create performance issues
+  
+  Users exceeding this limit receive an error with the exact character count.
+</ParamField>
+
+## Permission controls
+
+<ParamField path="SKIP_PERMISSIONS" type="boolean" default="true">
+  Bypass all tool permission prompts.
+  
+  ```bash
+  SKIP_PERMISSIONS=true
+  ```
+  
+  <Warning>
+    **Security vs. usability tradeoff.** This must be `true` for bots to work in non-interactive mode, but it means Claude can execute any tool without asking.
+  </Warning>
+  
+  **When to use:**
+  - ✅ Required for Telegram and Slack bots
+  - ✅ Safe in trusted environments with authorized users only
+  - ❌ Don't use if you need approval for every action
+  - ❌ Don't use in shared/public environments
+  
+  This setting adds the `--dangerously-skip-permissions` flag to Claude CLI commands.
+</ParamField>
+
+<ParamField path="ALLOWED_TOOLS" type="string" default="*">
+  Restrict which tools Claude can use.
+  
+  ```bash
+  ALLOWED_TOOLS=*
+  ```
+  
+  Options:
+  - `*` - All tools (recommended for MCPs)
+  - Comma-separated list - Only specific tools
+  
+  **Examples:**
+  ```bash
+  # Only read and edit files
+  ALLOWED_TOOLS=Read,Edit
+  
+  # Read-only mode
+  ALLOWED_TOOLS=Read,Glob,Grep
+  
+  # All tools (default)
+  ALLOWED_TOOLS=*
+  ```
+  
+  <Note>
+    When using MCPs, set this to `*` because MCP tool names can't be predicted in advance.
+  </Note>
+</ParamField>
+
+## Process isolation
+
+Claudio includes safeguards against multiple instances and orphaned processes:
+
+### Lock files
+
+Both Telegram and Slack bots use lock files to prevent multiple instances:
+
+```python
+# From bot source (bot.py:106-108)
+LOCK_FILE_PATH = os.path.join(tempfile.gettempdir(), 'telegram_claude_bot.lock')
+# Or for Slack:
+LOCK_FILE_PATH = os.path.join(tempfile.gettempdir(), 'slack_claude_bot.lock')
+```
+
+If you try to start a second instance, you'll see:
+```
+❌ ERROR: Otra instancia del bot está ejecutándose
+```
+
+To clear stale locks:
+```bash
+./kill_bot_processes.sh
+```
+
+### Process cleanup
+
+When the bot shuts down, it automatically:
+1. Kills all active Claude CLI subprocesses
+2. Releases lock files
+3. Cleans up temporary files
+
+```python
+# From bot source (bot.py:250-261)
+def cleanup_processes(self):
+    for process_info in self.active_processes[:]:
+        try:
+            pid, process = process_info
+            if process.returncode is None:
+                logger.warning(f"Killing orphaned Claude CLI process (PID: {pid})")
+                process.kill()
+                process.wait()
+        except Exception as e:
+            logger.debug(f"Error cleaning up process: {e}")
+    self.active_processes.clear()
+```
+
+## Security checklist
+
+Before deploying Claudio:
+
+- [ ] Set `ALLOWED_USER_IDS` (Telegram) or `SLACK_ALLOWED_USER_IDS` (Slack)
+- [ ] Configure rate limiting (`RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW`)
+- [ ] Set a reasonable `COMMAND_TIMEOUT`
+- [ ] Limit `MAX_INPUT_LENGTH` to prevent DoS
+- [ ] Only enable `SKIP_PERMISSIONS` if you trust all authorized users
+- [ ] Restrict `ALLOWED_TOOLS` if you don't need all tools
+- [ ] Keep bot tokens secret (never commit to git)
+- [ ] Use environment files (`.env`) that are gitignored
+- [ ] Monitor logs for unauthorized access attempts
+- [ ] Regularly review authorized user lists
+
+## Example secure configuration
+
+```bash .env
+# User authorization (REQUIRED)
+ALLOWED_USER_IDS=123456789,987654321  # Only these 2 users
+SLACK_ALLOWED_USER_IDS=U1234567890   # Only this Slack user
+
+# Rate limiting (moderate)
+RATE_LIMIT_REQUESTS=10    # 10 requests
+RATE_LIMIT_WINDOW=60      # per minute
+
+# Timeouts
+COMMAND_TIMEOUT=1800      # 30 minutes max
+MAX_INPUT_LENGTH=10000    # 10k characters max
+
+# Permissions (required for bots)
+SKIP_PERMISSIONS=true     # Non-interactive mode
+ALLOWED_TOOLS=*           # All tools (for MCPs)
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Environment variables" icon="gear" href="/configuration/environment">
+    Configure all environment variables
+  </Card>
+  <Card title="MCP setup" icon="plug" href="/configuration/mcp-setup">
+    Set up Model Context Protocol servers
+  </Card>
+</CardGroup>

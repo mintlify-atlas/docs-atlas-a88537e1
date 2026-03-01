@@ -1,0 +1,75 @@
+---
+title: MCP integrations
+description: Connect Claudio to your tools with Model Context Protocol servers
+---
+
+Claudio uses Model Context Protocol (MCP) servers to integrate with external tools and services. MCPs give Claudio the ability to read data, execute actions, and orchestrate workflows across your product stack.
+
+## What is MCP?
+
+Model Context Protocol is a standardized way for AI assistants to interact with external tools. Each MCP server provides a set of tools that Claudio can use to perform specific actions—like creating tasks in ClickUp, reading Google Docs, or sending Slack messages.
+
+## Configured integrations
+
+Claudio comes pre-configured with the following MCP servers:
+
+<CardGroup cols={2}>
+  <Card title="ClickUp" icon="check-square" href="/integrations/clickup">
+    Manage initiatives, epics, and user stories
+  </Card>
+  <Card title="GitHub" icon="github" href="/integrations/github">
+    Work with repositories, PRs, and issues
+  </Card>
+  <Card title="Slack" icon="slack" href="/integrations/slack">
+    Send messages and search conversations
+  </Card>
+  <Card title="Google Docs" icon="file-alt" href="/integrations/google-docs">
+    Create and edit documents
+  </Card>
+  <Card title="Google Sheets" icon="table" href="/integrations/google-sheets">
+    Read and update spreadsheets
+  </Card>
+  <Card title="Granola" icon="microphone" href="/integrations/granola">
+    Access meeting notes and transcriptions
+  </Card>
+  <Card title="BigQuery" icon="database" href="/integrations/bigquery">
+    Query and analyze data
+  </Card>
+</CardGroup>
+
+## How to use integrations
+
+You can interact with MCPs through any of Claudio's channels:
+
+- **Cursor IDE**: Use Claudio directly in your code editor
+- **Terminal**: Run commands via the Claude Code CLI
+- **Telegram**: Chat with Claudio on the go
+- **Slack**: Mention @Claudio in channels or DM
+
+Claudio automatically selects the right tools based on your request. For example:
+
+```
+You: Create a user story for the Sales Agent initiative about local testing
+
+Claudio:
+1. Uses ClickUp MCP to query the Sales Agent initiative
+2. Fetches related epics for context
+3. Creates the user story in the Sprint Backlog
+4. Returns the task URL
+```
+
+## Configuration
+
+All MCP servers are configured in `mcp/cursor-config.json`. Each integration page includes setup instructions and required credentials.
+
+For Cursor users, copy the configuration to `~/.cursor/mcp.json`. For Claude Code CLI users, see `mcp/claude-code-config.example.json`.
+
+## Multi-tool workflows
+
+Claudio can orchestrate actions across multiple MCPs. Common workflows include:
+
+- **Daily standup**: Create Google Doc notes → Share link in Slack
+- **Sprint reports**: Query ClickUp tasks → Update Google Sheet → Notify Slack
+- **Meeting follow-up**: Get Granola transcript → Create ClickUp tasks → DM assignees in Slack
+
+See the [workflows documentation](/workflows) for detailed guides.

@@ -1,0 +1,381 @@
+---
+title: MCP setup
+description: Configure Model Context Protocol servers for ClickUp, GitHub, Slack, Google Docs, and more
+---
+
+Model Context Protocol (MCP) servers give Claudio superpowers by connecting it to external tools and services. Configure MCPs in your Claude Code CLI config file.
+
+## Configuration files
+
+Claudio uses different config files depending on where it runs:
+
+<CardGroup cols={2}>
+  <Card title="Cursor IDE" icon="code">
+    **File:** `mcp/cursor-config.json`
+    
+    Used when running Claudio through Cursor's AI features.
+  </Card>
+  <Card title="Claude Code CLI" icon="terminal">
+    **File:** `~/.claude.json`
+    
+    Used by Telegram, Slack bots, and terminal usage. This is the main config.
+  </Card>
+</CardGroup>
+
+<Note>
+  The `mcp/claude-code-config.example.json` file is a **reference template** showing the structure for `~/.claude.json`. Copy relevant sections to your `~/.claude.json`.
+</Note>
+
+## Setting up ~/.claude.json
+
+Claude Code CLI reads MCP configuration from `~/.claude.json` in your home directory.
+
+### Basic structure
+
+```json ~/.claude.json
+{
+  "projects": {
+    "/path/to/your/workspace": {
+      "mcpServers": {
+        // Your MCP servers go here
+      }
+    }
+  }
+}
+```
+
+### Project-specific configs
+
+You can configure different MCPs for different projects:
+
+```json ~/.claude.json
+{
+  "projects": {
+    "/Users/you/Dev/claudio": {
+      "mcpServers": {
+        // MCPs for Claudio project
+      }
+    },
+    "/Users/you/Dev/another-project": {
+      "mcpServers": {
+        // Different MCPs for another project
+      }
+    }
+  }
+}
+```
+
+Set `WORKSPACE_PATH` in your `.env` to match the project path in `~/.claude.json`.
+
+## Available MCPs
+
+### ClickUp
+
+Manage tasks, epics, and initiatives in ClickUp.
+
+```json
+"ClickUp": {
+  "command": "npx",
+  "args": ["-y", "@taazkareem/clickup-mcp-server@latest"],
+  "env": {
+    "CLICKUP_MCP_LICENSE_KEY": "YOUR_LICENSE_KEY",
+    "CLICKUP_API_KEY": "YOUR_API_KEY",
+    "CLICKUP_TEAM_ID": "YOUR_TEAM_ID",
+    "DOCUMENT_SUPPORT": "true"
+  }
+}
+```
+
+**Required:**
+- `CLICKUP_MCP_LICENSE_KEY` - Get from MCP author
+- `CLICKUP_API_KEY` - Your ClickUp API key
+- `CLICKUP_TEAM_ID` - Your ClickUp workspace/team ID
+
+**Capabilities:**
+- Query tasks, lists, folders
+- Create and update tasks
+- Manage custom fields
+- Work with ClickUp Docs
+
+### GitHub
+
+Access repositories, issues, and pull requests.
+
+```json
+"github": {
+  "url": "https://api.githubcopilot.com/mcp/",
+  "headers": {
+    "Authorization": "Bearer YOUR_GITHUB_COPILOT_TOKEN"
+  }
+}
+```
+
+<Warning>
+  Requires GitHub Copilot subscription. The token is your Copilot API token, not a regular GitHub PAT.
+</Warning>
+
+**Capabilities:**
+- List and search repositories
+- Read and create issues
+- Manage pull requests
+- View commit history
+
+### Slack
+
+Send messages and manage Slack workspace.
+
+```json
+"slack": {
+  "command": "/path/to/.nvm/versions/node/v20.x.x/bin/npx",
+  "args": ["-y", "slack-mcp-server@latest", "--transport", "stdio"],
+  "env": {
+    "PATH": "/path/to/.nvm/versions/node/v20.x.x/bin:/usr/local/bin:/usr/bin:/bin",
+    "SLACK_MCP_XOXC_TOKEN": "xoxc-YOUR_TOKEN",
+    "SLACK_MCP_XOXD_TOKEN": "xoxd-YOUR_TOKEN",
+    "SLACK_MCP_ADD_MESSAGE_TOOL": "true"
+  }
+}
+```
+
+**Required:**
+- `SLACK_MCP_XOXC_TOKEN` - User session token
+- `SLACK_MCP_XOXD_TOKEN` - User session cookie
+- Full path to `npx` (find with `which npx`)
+
+<Note>
+  The Slack MCP uses user tokens, not bot tokens. Get these from your browser's dev tools while logged into Slack.
+</Note>
+
+**Capabilities:**
+- Send messages to channels
+- Post in threads
+- List channels and users
+- Search messages
+
+### Google Docs
+
+Read and edit Google Docs.
+
+```json
+"google-docs-mcp": {
+  "command": "node",
+  "args": ["/path/to/mcp-googledocs-server/dist/server.js"]
+}
+```
+
+**Setup:**
+1. Clone the Google Docs MCP server
+2. Install dependencies: `npm install`
+3. Build: `npm run build`
+4. Set up Google OAuth credentials
+5. Point to the built server in your config
+
+**Capabilities:**
+- Read document content
+- Update documents
+- Create new documents
+- Manage document permissions
+
+### Granola
+
+Access meeting notes and transcriptions.
+
+```json
+"granola-mcp": {
+  "command": "python",
+  "args": ["-m", "granola_mcp.mcp"],
+  "env": {
+    "GRANOLA_CACHE_PATH": "/path/to/Library/Application Support/Granola/cache-v3.json"
+  }
+}
+```
+
+**Required:**
+- `GRANOLA_CACHE_PATH` - Path to your Granola cache file
+- Granola app installed and running
+
+**Capabilities:**
+- Query meeting notes
+- Search transcriptions
+- Access meeting metadata
+
+## Complete example
+
+Here's a full `~/.claude.json` with all MCPs configured:
+
+```json ~/.claude.json
+{
+  "projects": {
+    "/Users/you/Dev/claudio": {
+      "mcpServers": {
+        "ClickUp": {
+          "command": "npx",
+          "args": ["-y", "@taazkareem/clickup-mcp-server@latest"],
+          "env": {
+            "CLICKUP_MCP_LICENSE_KEY": "your-license-key",
+            "CLICKUP_API_KEY": "pk_123456",
+            "CLICKUP_TEAM_ID": "9876543",
+            "DOCUMENT_SUPPORT": "true"
+          }
+        },
+        "github": {
+          "url": "https://api.githubcopilot.com/mcp/",
+          "headers": {
+            "Authorization": "Bearer gho_xxxxxxxxxxxx"
+          }
+        },
+        "slack": {
+          "command": "/Users/you/.nvm/versions/node/v20.20.0/bin/npx",
+          "args": ["-y", "slack-mcp-server@latest", "--transport", "stdio"],
+          "env": {
+            "PATH": "/Users/you/.nvm/versions/node/v20.20.0/bin:/usr/local/bin:/usr/bin:/bin",
+            "SLACK_MCP_XOXC_TOKEN": "xoxc-...",
+            "SLACK_MCP_XOXD_TOKEN": "xoxd-...",
+            "SLACK_MCP_ADD_MESSAGE_TOOL": "true"
+          }
+        },
+        "google-docs-mcp": {
+          "command": "node",
+          "args": ["/Users/you/Dev/mcp-servers/mcp-googledocs-server/dist/server.js"]
+        },
+        "granola-mcp": {
+          "command": "python",
+          "args": ["-m", "granola_mcp.mcp"],
+          "env": {
+            "GRANOLA_CACHE_PATH": "/Users/you/Library/Application Support/Granola/cache-v3.json"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## Testing your MCP setup
+
+Verify MCPs are working:
+
+### 1. Test from terminal
+
+```bash
+# Navigate to your workspace
+cd /path/to/claudio
+
+# Test Claude CLI with MCP
+claude "List my ClickUp tasks"
+```
+
+### 2. Test from Telegram
+
+Send a message to your Telegram bot:
+```
+What are my open tasks in ClickUp?
+```
+
+### 3. Check logs
+
+Look for MCP initialization in bot logs:
+```
+[INFO] Claude CLI: Loaded 5 MCP servers
+[INFO] MCPs available: ClickUp, github, slack, google-docs-mcp, granola-mcp
+```
+
+## Common issues
+
+### MCPs not loading
+
+**Problem:** Claudio doesn't see your MCPs
+
+**Solutions:**
+1. Verify `WORKSPACE_PATH` in `.env` matches the project path in `~/.claude.json`
+2. Check JSON syntax in `~/.claude.json` (use a JSON validator)
+3. Ensure MCP commands are in your PATH (run `which npx`, `which node`, `which python`)
+4. Check file permissions on `~/.claude.json`
+
+### npx not found
+
+**Problem:** Error: `npx: command not found`
+
+**Solution:** Use the full path to npx:
+```bash
+# Find npx path
+which npx
+# Output: /Users/you/.nvm/versions/node/v20.20.0/bin/npx
+
+# Use full path in config
+"command": "/Users/you/.nvm/versions/node/v20.20.0/bin/npx"
+```
+
+### Permission prompts blocking
+
+**Problem:** MCP tools ask for permission but can't receive input
+
+**Solution:** Set `SKIP_PERMISSIONS=true` in your `.env`:
+```bash
+SKIP_PERMISSIONS=true
+ALLOWED_TOOLS=*
+```
+
+### Environment variables not set
+
+**Problem:** MCP fails with "API key not found"
+
+**Solution:** Check that env vars in `~/.claude.json` are set correctly:
+```json
+"env": {
+  "CLICKUP_API_KEY": "pk_actual_key_here",  // Not a placeholder!
+  "CLICKUP_TEAM_ID": "9876543"               // Not YOUR_TEAM_ID
+}
+```
+
+## Cursor IDE setup
+
+If you use Cursor IDE, MCPs are configured in `mcp/cursor-config.json` (no project nesting):
+
+```json mcp/cursor-config.json
+{
+  "mcpServers": {
+    "clickup": {
+      "command": "npx",
+      "args": ["-y", "@taazkareem/clickup-mcp-server@latest"],
+      "env": {
+        "CLICKUP_MCP_LICENSE_KEY": "your-key",
+        "CLICKUP_API_KEY": "pk_123",
+        "CLICKUP_TEAM_ID": "9876",
+        "DOCUMENT_SUPPORT": "true"
+      }
+    }
+  }
+}
+```
+
+Cursor reads this file automatically from the `mcp/` directory.
+
+## Security considerations
+
+<Warning>
+  **Never commit MCP configs with secrets to git!**
+</Warning>
+
+- Keep `~/.claude.json` in your home directory (not in the repo)
+- The `cursor-config.json` should use environment variables:
+  ```json
+  "env": {
+    "CLICKUP_API_KEY": "${CLICKUP_API_KEY}"
+  }
+  ```
+- Add MCP config files to `.gitignore`
+- Use separate API keys for development and production
+- Rotate tokens regularly
+- Only grant minimum required permissions
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Environment variables" icon="gear" href="/configuration/environment">
+    Configure all environment variables
+  </Card>
+  <Card title="Security settings" icon="shield" href="/configuration/security">
+    Set up rate limiting and user authorization
+  </Card>
+</CardGroup>

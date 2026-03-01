@@ -1,0 +1,237 @@
+---
+title: Slack integration
+description: Send messages and search conversations with the Slack MCP server
+---
+
+The Slack integration lets Claudio send messages, search conversations, and interact with your workspace.
+
+## Purpose
+
+Use this MCP to:
+
+- Send messages to channels and direct messages
+- Search message history
+- Read conversation threads
+- List channels and users
+- Share updates and notifications
+
+## Setup
+
+<Steps>
+  <Step title="Get your Slack tokens">
+    The Slack MCP uses browser session tokens (`xoxc` and `xoxd`) instead of a bot token.
+    
+    1. Open Slack in your browser and sign in
+    2. Open DevTools (F12 or Cmd+Option+I)
+    3. Go to Console tab
+    4. Run: `localStorage.getItem('localConfig_v2')`
+    5. Copy the `xoxc-...` token from the output
+    6. Go to Application → Cookies → `https://app.slack.com`
+    7. Copy the value of the `d` cookie (this is your `xoxd` token)
+  </Step>
+  
+  <Step title="Configure environment variables">
+    Add these to your MCP configuration:
+    
+    ```json
+    "env": {
+      "SLACK_MCP_XOXC_TOKEN": "xoxc-YOUR_TOKEN",
+      "SLACK_MCP_XOXD_TOKEN": "xoxd-YOUR_TOKEN",
+      "SLACK_MCP_ADD_MESSAGE_TOOL": "true"
+    }
+    ```
+  </Step>
+  
+  <Step title="Install the server">
+    The server runs via npx:
+    
+    ```json
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "slack-mcp-server@latest", "--transport", "stdio"],
+      "env": { ... }
+    }
+    ```
+    
+    <Note>
+      Update the `PATH` environment variable to include your Node.js binary location.
+    </Note>
+  </Step>
+</Steps>
+
+## Available tools
+
+### channels_list
+
+List all channels you have access to.
+
+```
+channels_list(
+  channel_types: "public_channel,private_channel,im"
+)
+```
+
+### conversations_history
+
+View messages from a channel or DM.
+
+```
+conversations_history(
+  channel_id: "#general",
+  limit: "1d"  // or "1h", "1w", number of messages
+)
+```
+
+### conversations_replies
+
+View replies in a thread.
+
+```
+conversations_replies(
+  channel_id: "#general",
+  thread_ts: "1234567890.123456"
+)
+```
+
+### conversations_add_message
+
+Send a message to a channel or DM.
+
+```
+conversations_add_message(
+  channel_id: "@username",
+  payload: "Your message here",
+  content_type: "text/plain"
+)
+```
+
+### conversations_search_messages
+
+Search for messages across your workspace.
+
+```
+conversations_search_messages(
+  query: "sales agent launch",
+  channel_id: "#product"  // optional, search specific channel
+)
+```
+
+## Usage examples
+
+### Send a status update
+
+```
+You: Send a message to #product that we shipped the Sales Agent feature
+
+Claudio:
+1. Shows you a draft of the message
+2. Waits for your confirmation
+3. Uses conversations_add_message(channel_id: "#product", payload: "...")
+4. Confirms the message was sent
+```
+
+<Warning>
+  Claudio always shows you a draft before sending Slack messages and waits for confirmation.
+</Warning>
+
+### Search recent conversations
+
+```
+You: What were we discussing about the roadmap yesterday?
+
+Claudio uses: conversations_search_messages(query: "roadmap")
+```
+
+### Read channel history
+
+```
+You: Show me today's messages in #standup
+
+Claudio uses: conversations_history(channel_id: "#standup", limit: "1d")
+```
+
+## Common workflows
+
+### Daily standup notifications
+
+1. Create meeting notes in Google Docs
+2. Get the shareable link
+3. Send link to #standup channel
+
+```
+You: Create daily standup notes and share in Slack
+
+Claudio:
+1. Creates Google Doc with standup template
+2. Drafts Slack message with doc link
+3. Shows you the draft
+4. Sends to #standup after confirmation
+```
+
+### Sprint report sharing
+
+1. Query ClickUp for completed tasks
+2. Generate summary
+3. Post to #product channel
+
+### Bug notifications
+
+1. Create ClickUp task for bug
+2. Create GitHub issue
+3. DM the assignee in Slack with both links
+
+## Channel and user IDs
+
+You can reference channels and users by:
+
+- **Channel name**: `#product`, `#engineering`
+- **User name**: `@ignacio`, `@teammate`
+- **Direct ID**: `C1234567890` for channels, `U1234567890` for users
+
+Claudio resolves names to IDs automatically when needed.
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Always confirm before sending">
+    Claudio shows you a draft of every message before sending. Review it carefully to ensure the tone and content are appropriate.
+  </Accordion>
+  
+  <Accordion title="Test in DMs first">
+    If you're unsure about a message format, ask Claudio to send it to yourself first as a test.
+  </Accordion>
+  
+  <Accordion title="Use appropriate channels">
+    Send updates to the right channel. For example:
+    - Product updates → #product
+    - Engineering updates → #engineering
+    - Standup notes → #standup
+  </Accordion>
+  
+  <Accordion title="Include context and links">
+    When notifying about tasks or issues, include links to ClickUp, GitHub, or Google Docs for easy access.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Token expired or invalid">
+    Session tokens expire after a while. If you get authentication errors:
+    
+    1. Sign out and sign back in to Slack
+    2. Get fresh `xoxc` and `xoxd` tokens
+    3. Update your MCP configuration
+  </Accordion>
+  
+  <Accordion title="Can't find channel">
+    Make sure you've joined the channel in Slack. The MCP can only access channels you're a member of.
+  </Accordion>
+  
+  <Accordion title="Message not sending">
+    Verify:
+    - Your tokens are valid
+    - You have permission to post in the channel
+    - The channel ID or name is correct
+  </Accordion>
+</AccordionGroup>

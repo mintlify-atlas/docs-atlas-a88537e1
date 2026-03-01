@@ -1,0 +1,91 @@
+---
+title: Daily standup
+description: Automatically create formatted standup notes and share them with your team in seconds.
+---
+
+This workflow creates a formatted Google Doc for your daily standup meeting and shares the link to your team's Slack channel.
+
+## MCPs used
+
+- **Google Docs** — Creates the standup document with pre-formatted template
+- **Slack** — Shares the document link to the team channel
+
+## How to trigger
+
+<CodeGroup>
+```bash Terminal
+claude -p "Crea las notas para la daily de hoy"
+```
+
+```text Telegram
+Crea las notas para la daily
+```
+
+```text Slack
+@Claudio create the daily standup notes
+```
+</CodeGroup>
+
+## What it does
+
+<Steps>
+  <Step title="Creates the document">
+    Claudio generates a new Google Doc with today's date in the title and a structured template for standup updates.
+  </Step>
+  <Step title="Formats the template">
+    The doc includes sections for participants, individual updates (yesterday/today/blockers), action items, and general notes.
+  </Step>
+  <Step title="Gets the shareable link">
+    Retrieves the Google Docs URL with appropriate sharing permissions.
+  </Step>
+  <Step title="Sends to Slack">
+    Posts the link to your configured daily standups channel (e.g., `#daily-standups`).
+  </Step>
+</Steps>
+
+## Document template
+
+The generated document follows this structure:
+
+```markdown
+# Daily Standup - {fecha}
+
+## Participantes
+- 
+
+## Updates
+
+### [Nombre]
+- **Ayer**: 
+- **Hoy**: 
+- **Blockers**: 
+
+## Action Items
+- [ ] 
+
+## Notas
+```
+
+Each team member gets their own section to fill in their updates before or during the standup.
+
+## Expected output
+
+After the workflow completes, you'll receive:
+
+- **Google Doc link** — Direct URL to the created standup document
+- **Slack confirmation** — Message posted to `#daily-standups` with the doc link
+
+<Note>
+Make sure your Google Docs MCP has write permissions to your shared drive or folder where standup notes should be created.
+</Note>
+
+## Customization
+
+You can customize this workflow by:
+
+- Modifying the template structure to match your team's format
+- Changing the target Slack channel in your Slack MCP configuration
+- Adding additional sections like "Shoutouts" or "Metrics Review"
+- Including links to sprint boards or dashboards in the template
+
+To customize the template, update the workflow definition in `docs/workflows/product/daily-standup.md` in the source repository.

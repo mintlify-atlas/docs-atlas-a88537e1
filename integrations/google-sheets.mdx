@@ -1,0 +1,238 @@
+---
+title: Google Sheets integration
+description: Read and update spreadsheets with the Google Sheets MCP server
+---
+
+The Google Sheets integration lets Claudio read data, update cells, and append rows to spreadsheets in your Google Drive.
+
+## Purpose
+
+Use this MCP to:
+
+- Read data from spreadsheets
+- Update cells and ranges
+- Append rows to existing sheets
+- Generate reports from ClickUp data
+- Track metrics and KPIs
+
+## Setup
+
+The Google Sheets MCP shares the same server as Google Docs. Follow the [Google Docs setup guide](/integrations/google-docs) to configure authentication.
+
+<Note>
+  You only need to set up the Google MCP server once. It provides tools for both Docs and Sheets.
+</Note>
+
+## Available tools
+
+### read_spreadsheet
+
+Read data from a spreadsheet range.
+
+```
+read_spreadsheet(
+  spreadsheet_id: "1abc123def456...",
+  range: "Sheet1!A1:D10"
+)
+```
+
+### update_spreadsheet
+
+Update cells in a spreadsheet.
+
+```
+update_spreadsheet(
+  spreadsheet_id: "1abc123def456...",
+  range: "Sheet1!A1:B2",
+  values: [
+    ["Header 1", "Header 2"],
+    ["Value 1", "Value 2"]
+  ]
+)
+```
+
+### append_rows
+
+Append new rows to the end of a sheet.
+
+```
+append_rows(
+  spreadsheet_id: "1abc123def456...",
+  range: "Sheet1!A:D",
+  values: [
+    ["Task 1", "In Progress", "2026-02-28", "Alice"],
+    ["Task 2", "Done", "2026-02-27", "Bob"]
+  ]
+)
+```
+
+## Usage examples
+
+### Generate sprint report
+
+```
+You: Create a sprint report in Google Sheets
+
+Claudio:
+1. Queries ClickUp for tasks in the current sprint
+2. Reads existing sprint report spreadsheet
+3. Appends new rows with task data
+4. Updates summary metrics
+5. Returns the spreadsheet URL
+```
+
+### Track metrics
+
+```
+You: Log today's deployment metrics
+
+Claudio:
+1. Gets deployment data from your systems
+2. Appends a new row with: date, deployments, success rate, duration
+3. Confirms the data was added
+```
+
+### Read dashboard data
+
+```
+You: What's our velocity this sprint?
+
+Claudio:
+1. Reads the metrics sheet
+2. Extracts velocity data
+3. Compares to previous sprints
+4. Provides summary
+```
+
+## Common workflows
+
+### Sprint reporting
+
+1. Query ClickUp tasks completed this sprint
+2. Calculate metrics (velocity, completion rate, etc.)
+3. Update sprint report spreadsheet
+4. Share link in Slack #product channel
+
+```
+You: Generate the sprint report and share it
+
+Claudio:
+1. Queries ClickUp: get_workspace_tasks(list_ids: [...sprint lists...])
+2. Calculates: tasks completed, story points, velocity
+3. Updates sheet: update_spreadsheet()
+4. Shares in Slack with summary
+```
+
+### Daily metrics tracking
+
+1. Collect data from various sources
+2. Append to tracking spreadsheet
+3. Auto-calculate trends and insights
+
+### Roadmap planning
+
+1. Read initiatives from ClickUp
+2. Update roadmap spreadsheet with status
+3. Generate timeline visualization
+
+## Spreadsheet structure examples
+
+### Sprint report template
+
+| Sprint | Start Date | End Date | Completed | Story Points | Velocity |
+|--------|-----------|----------|-----------|--------------|----------|
+| Sprint 8 | 2026-01-12 | 2026-01-25 | 12 | 34 | 34 |
+| Sprint 9 | 2026-01-26 | 2026-02-08 | 15 | 42 | 42 |
+
+### Task tracking template
+
+| Task ID | Title | Status | Assignee | Completed Date |
+|---------|-------|--------|----------|----------------|
+| abc123 | Feature A | Done | Alice | 2026-02-28 |
+| def456 | Bug fix B | Done | Bob | 2026-02-27 |
+
+### Metrics dashboard template
+
+| Date | Deployments | Success Rate | Avg Duration | Issues |
+|------|-------------|--------------|--------------|--------|
+| 2026-02-28 | 3 | 100% | 12m | 0 |
+| 2026-02-27 | 2 | 100% | 8m | 0 |
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use named ranges">
+    Define named ranges in Google Sheets for commonly accessed data (like `MetricsSummary` or `CurrentSprint`). This makes it easier to reference data without remembering cell addresses.
+  </Accordion>
+  
+  <Accordion title="Keep headers consistent">
+    Use the same column headers across reports so Claudio can reliably find and update the right data.
+  </Accordion>
+  
+  <Accordion title="Append, don't overwrite">
+    When adding new data, use `append_rows` instead of `update_spreadsheet` to avoid accidentally overwriting existing records.
+  </Accordion>
+  
+  <Accordion title="Link to source data">
+    Include links to ClickUp tasks or GitHub issues in your spreadsheets so you can trace back to the original source.
+  </Accordion>
+  
+  <Accordion title="Use formulas for calculations">
+    Let Google Sheets handle calculations with formulas (SUM, AVERAGE, etc.) rather than computing values in Claudio. Just write the raw data.
+  </Accordion>
+</AccordionGroup>
+
+## Integration with other MCPs
+
+### ClickUp → Sheets reporting
+
+```
+You: Update the sprint report with this week's completed tasks
+
+Claudio:
+1. ClickUp: get_workspace_tasks() for completed tasks
+2. Sheets: append_rows() with task details
+3. Slack: Share update in #product
+```
+
+### Granola → Sheets action items
+
+```
+You: Log action items from today's meeting to the tracking sheet
+
+Claudio:
+1. Granola: get_meeting() for latest meeting
+2. Extract action items
+3. Sheets: append_rows() with items
+4. ClickUp: Optionally create tasks for action items
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Can't find spreadsheet">
+    Make sure:
+    - The spreadsheet ID is correct (from the URL)
+    - You have access to the spreadsheet
+    - The spreadsheet hasn't been deleted or moved to trash
+  </Accordion>
+  
+  <Accordion title="Range is invalid">
+    Use valid A1 notation for ranges:
+    - Single cell: `A1`
+    - Range: `A1:D10`
+    - Entire column: `A:A`
+    - Specific sheet: `Sheet1!A1:D10`
+  </Accordion>
+  
+  <Accordion title="Data not updating">
+    If data isn't appearing:
+    - Check that your range is correct
+    - Verify the values array format matches the range size
+    - Ensure you have edit permissions on the spreadsheet
+  </Accordion>
+  
+  <Accordion title="Permission errors">
+    The MCP needs both Google Sheets API and Google Drive API enabled. Verify both are active in your Google Cloud Console.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,327 @@
+---
+title: BigQuery integration
+description: Query and analyze data with the BigQuery MCP server
+---
+
+The BigQuery integration lets Claudio run SQL queries against your Google BigQuery datasets to analyze data and generate insights.
+
+<Note>
+  BigQuery support is planned for a future release. This page documents the intended capabilities and setup process.
+</Note>
+
+## Purpose
+
+Use this MCP to:
+
+- Run SQL queries against BigQuery datasets
+- Analyze product metrics and usage data
+- Generate reports from production data
+- Join data across multiple tables
+- Export query results to Google Sheets
+
+## Setup
+
+<Steps>
+  <Step title="Set up Google Cloud project">
+    1. Go to [Google Cloud Console](https://console.cloud.google.com)
+    2. Create a new project or select an existing one
+    3. Enable the BigQuery API
+  </Step>
+  
+  <Step title="Create service account">
+    1. Go to IAM & Admin → Service Accounts
+    2. Create a new service account
+    3. Grant BigQuery User and BigQuery Data Viewer roles
+    4. Create and download a JSON key file
+  </Step>
+  
+  <Step title="Configure the MCP server">
+    Add this to your MCP configuration:
+    
+    ```json
+    "bigquery": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-bigquery"],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/service-account-key.json",
+        "BIGQUERY_PROJECT_ID": "your-project-id"
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Verify access">
+    Test that Claudio can access your datasets:
+    
+    ```
+    You: List my BigQuery datasets
+    
+    Claudio uses: list_datasets()
+    ```
+  </Step>
+</Steps>
+
+## Available tools
+
+### list_datasets
+
+List all datasets in your BigQuery project.
+
+```
+list_datasets(
+  project_id: "your-project-id"
+)
+```
+
+### list_tables
+
+List tables in a specific dataset.
+
+```
+list_tables(
+  project_id: "your-project-id",
+  dataset_id: "analytics"
+)
+```
+
+### query
+
+Run a SQL query against BigQuery.
+
+```
+query(
+  query: "SELECT COUNT(*) as total_users FROM `project.dataset.users` WHERE created_at > '2026-01-01'",
+  project_id: "your-project-id"
+)
+```
+
+### get_table_schema
+
+Get the schema of a specific table.
+
+```
+get_table_schema(
+  project_id: "your-project-id",
+  dataset_id: "analytics",
+  table_id: "events"
+)
+```
+
+## Usage examples
+
+### Analyze user metrics
+
+```
+You: How many users signed up this month?
+
+Claudio:
+1. Identifies relevant table (users)
+2. Runs query: SELECT COUNT(*) FROM users WHERE created_at >= '2026-02-01'
+3. Returns the count
+```
+
+### Generate usage report
+
+```
+You: Create a report of feature usage for Q1
+
+Claudio:
+1. Queries BigQuery for feature events
+2. Aggregates by feature and date
+3. Exports results to Google Sheets
+4. Formats as a dashboard
+5. Shares link in Slack
+```
+
+### Investigate data issues
+
+```
+You: Why did we see a spike in errors yesterday?
+
+Claudio:
+1. Queries error logs table
+2. Groups by error type and hour
+3. Identifies the spike timing and cause
+4. Summarizes findings
+```
+
+## Common workflows
+
+### Product metrics dashboard
+
+1. Query BigQuery for key metrics (DAU, MAU, retention)
+2. Export to Google Sheets
+3. Create charts and visualizations
+4. Share dashboard in #product channel
+
+```
+You: Update the product metrics dashboard
+
+Claudio:
+1. BigQuery: query() for each metric
+2. Sheets: update_spreadsheet() with results
+3. Slack: Share updated dashboard link
+```
+
+### User cohort analysis
+
+1. Query user signup dates
+2. Analyze retention by cohort
+3. Generate insights
+4. Create summary doc
+
+### Performance monitoring
+
+1. Query performance logs
+2. Calculate p50, p95, p99 latencies
+3. Compare to historical data
+4. Alert if thresholds exceeded
+
+## Query examples
+
+### Daily active users
+
+```sql
+SELECT 
+  DATE(timestamp) as date,
+  COUNT(DISTINCT user_id) as dau
+FROM `project.analytics.events`
+WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
+GROUP BY date
+ORDER BY date DESC
+```
+
+### Feature adoption
+
+```sql
+SELECT 
+  feature_name,
+  COUNT(DISTINCT user_id) as unique_users,
+  COUNT(*) as total_events
+FROM `project.analytics.feature_events`
+WHERE DATE(timestamp) = CURRENT_DATE()
+GROUP BY feature_name
+ORDER BY unique_users DESC
+```
+
+### Error rate
+
+```sql
+SELECT 
+  DATE(timestamp) as date,
+  COUNT(*) as total_requests,
+  SUM(CASE WHEN status >= 500 THEN 1 ELSE 0 END) as errors,
+  ROUND(SUM(CASE WHEN status >= 500 THEN 1 ELSE 0 END) / COUNT(*) * 100, 2) as error_rate
+FROM `project.logs.requests`
+WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+GROUP BY date
+ORDER BY date DESC
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use query limits for exploration">
+    When exploring data, add `LIMIT 100` to your queries to avoid processing large amounts of data unnecessarily.
+  </Accordion>
+  
+  <Accordion title="Cache results in Sheets">
+    For frequently accessed metrics, query BigQuery once and store results in Google Sheets. Then read from Sheets for faster access.
+  </Accordion>
+  
+  <Accordion title="Partition tables by date">
+    When querying time-series data, always filter by date to reduce query costs and improve performance.
+  </Accordion>
+  
+  <Accordion title="Monitor query costs">
+    BigQuery charges based on data processed. Ask Claudio to estimate query costs for large datasets before running.
+  </Accordion>
+  
+  <Accordion title="Use fully qualified table names">
+    Always specify project, dataset, and table: `` `project.dataset.table` `` to avoid ambiguity.
+  </Accordion>
+</AccordionGroup>
+
+## Integration with other MCPs
+
+### BigQuery → Sheets → Slack
+
+```
+You: Generate this week's metrics report
+
+Claudio:
+1. BigQuery: query() for weekly metrics
+2. Sheets: update_spreadsheet() with results
+3. Slack: Share dashboard link in #product
+```
+
+### BigQuery → ClickUp
+
+```
+You: Find users affected by the bug and create tracking tasks
+
+Claudio:
+1. BigQuery: query() for affected users
+2. Analyzes impact
+3. ClickUp: create_task() for follow-up work
+4. Includes user count and query results in task
+```
+
+### BigQuery → Docs
+
+```
+You: Create an analysis doc for the feature launch
+
+Claudio:
+1. BigQuery: query() for usage metrics
+2. Calculates: adoption rate, retention, engagement
+3. Google Docs: create_document() with analysis
+4. Includes charts and insights
+```
+
+## Cost management
+
+BigQuery pricing is based on:
+
+- **Storage**: Amount of data stored
+- **Queries**: Amount of data processed per query
+- **Streaming**: Rows streamed for real-time inserts
+
+To minimize costs:
+
+- Use partitioned tables and filter by partition
+- Select only the columns you need
+- Use `LIMIT` for exploration
+- Cache results in Sheets for repeated access
+- Enable query result caching in BigQuery
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Authentication failed">
+    Verify:
+    - The service account JSON key path is correct
+    - The service account has BigQuery permissions
+    - The `GOOGLE_APPLICATION_CREDENTIALS` env var is set
+  </Accordion>
+  
+  <Accordion title="Permission denied on dataset">
+    Make sure your service account has:
+    - BigQuery Data Viewer role (to read data)
+    - BigQuery User role (to run queries)
+  </Accordion>
+  
+  <Accordion title="Query timeout">
+    For long-running queries:
+    - Add filters to reduce data processed
+    - Use partitioned tables
+    - Increase the query timeout setting
+  </Accordion>
+  
+  <Accordion title="Quota exceeded">
+    If you hit rate limits:
+    - Wait a few minutes before retrying
+    - Request quota increase in Google Cloud Console
+    - Batch multiple queries instead of running them sequentially
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,277 @@
+---
+title: Automation scripts
+description: Scheduled workflows that run automatically via cron jobs to generate reports and maintain system health.
+---
+
+Automation scripts are workflows that run on a schedule without manual intervention. They use cron jobs to trigger Claudio at specific times, generating reports and performing maintenance tasks.
+
+## How automation works
+
+<Steps>
+  <Step title="Cron triggers the script">
+    A scheduled cron job executes the bash script at the configured time.
+  </Step>
+  <Step title="Script calls Claudio">
+    The script uses Claude Code CLI (`claude -p`) with a detailed prompt.
+  </Step>
+  <Step title="Claudio executes the workflow">
+    MCPs are orchestrated to gather data, generate reports, and send outputs.
+  </Step>
+  <Step title="Results are logged">
+    Execution logs are written to `scripts/logs/` for debugging and monitoring.
+  </Step>
+</Steps>
+
+## Available automation scripts
+
+### Weekly bot report
+
+**File**: `scripts/weekly-bot-report.sh`
+
+Generates and emails a weekly performance report for the WhatsApp bot.
+
+**Schedule**:
+- **Frequency**: Every Monday
+- **Time**: 9:00 AM
+- **Cron expression**: `0 9 * * 1`
+
+**What it does**:
+
+<Steps>
+  <Step title="Reads funnel metrics">
+    Pulls data from the "Full Funnel Performance" spreadsheet (ID: `1PI2NnSzDhxCrb-NY18WgEiNpQyujgSG0RkPCw4c7IM8`).
+  </Step>
+  <Step title="Calculates WoW changes">
+    Compares last week vs. previous week with absolute delta and percentage change.
+  </Step>
+  <Step title="Generates HTML email">
+    Creates a formatted report with tables, color-coded metrics (PropHero blue `#2050f6`), and green/red arrows for improvements/declines.
+  </Step>
+  <Step title="Sends via Gmail">
+    Emails the report to ignacio.delacuba@prophero.com with subject "Reporte Semanal Bot - Full Funnel Performance".
+  </Step>
+</Steps>
+
+**Metrics included**:
+
+1. Nuevos Leads
+2. Group Calls Booked (Direct)
+3. New Lead No Booked
+4. Group Calls Booked by Bot (Total)
+5. First Time - Group Calls Booked by Bot
+6. % First Time
+7. Rescheduled - Group Calls Booked by Bot
+8. % Rescheduled
+9. Group Calls Booked (Total)
+10. % Group Calls Booked by Bot (from Total Group Calls)
+11. Group Call Attended (Total)
+12. Group Call Attended (Booked by Bot)
+13. Show Up Rate (Total)
+14. Bot - Show Up Rate
+
+**MCPs used**:
+- Google Sheets (read metrics)
+- Gmail (send report)
+
+**Manual execution**:
+```bash
+./scripts/weekly-bot-report.sh
+```
+
+### Monthly DS & AI report
+
+**File**: `scripts/monthly-ds-ai-report.sh`
+
+Generates a comprehensive monthly review for the DS & AI squad and publishes it to Google Drive.
+
+**Schedule**:
+- **Frequency**: First day of each month
+- **Time**: 10:00 AM
+- **Cron expression**: `0 10 1 * *`
+
+**What it does**:
+
+<Steps>
+  <Step title="Calculates date range">
+    Automatically determines the previous full calendar month.
+  </Step>
+  <Step title="Pulls Epics from ClickUp">
+    Retrieves current quarter Epics from list `901215396098`.
+  </Step>
+  <Step title="Pulls completed tasks">
+    Fetches tasks completed or in progress during the previous month from sprint lists.
+  </Step>
+  <Step title="Pulls Initiatives">
+    Gets Initiatives where DS & AI is involved from list `901213053436`.
+  </Step>
+  <Step title="Calculates delivery metrics">
+    Computes Say/Do Ratio, Carry-over, Bug Rate, Cycle Time, and Completion Rate per Epic.
+  </Step>
+  <Step title="Builds structured report">
+    Creates a report following the meeting agenda: Wins & Learnings, Metrics, Initiatives & Epics Review, Recap.
+  </Step>
+  <Step title="Publishes to Google Drive">
+    Creates a Google Doc in folder `1M7cqCebNXSJ-kcALWC3CVS44C6sAKcFo` named "DS & AI Monthly Review — [Month] [Year]".
+  </Step>
+</Steps>
+
+**Report sections**:
+
+1. **Wins & Learnings** (0–10 min) — Top 3 wins, biggest learnings, general updates
+2. **Metrics** (10–30 min) — Outcome metrics, delivery metrics, speed & quality, team health
+3. **Initiatives & Epics Review** (30–50 min) — Planned vs delivered, epic status, risks & blockers
+4. **Recap** (50–60 min) — Summary, decisions, next steps
+
+**MCPs used**:
+- ClickUp (Epics, tasks, Initiatives)
+- Google Docs (create report)
+
+**Manual execution**:
+```bash
+./scripts/monthly-ds-ai-report.sh
+```
+
+**Related workflow**: See [Sprint report](/workflows/sprint-report) for detailed metric calculations.
+
+### Kill bot processes
+
+**File**: `scripts/kill_bot_processes.sh`
+
+Maintenance script to safely terminate bot processes and clean up lock files.
+
+**Purpose**: Use this when bots (Telegram or Slack) become unresponsive or you need to restart them.
+
+**What it does**:
+
+<Steps>
+  <Step title="Finds bot processes">
+    Searches for running Python bot processes (telegram/bot.py, slack/bot.py).
+  </Step>
+  <Step title="Terminates gracefully">
+    Sends SIGTERM to allow clean shutdown, waits 1 second.
+  </Step>
+  <Step title="Removes lock files">
+    Deletes `/tmp/telegram_claude_bot.lock` and `/tmp/slack_claude_bot.lock`.
+  </Step>
+  <Step title="Forces kill if needed">
+    If processes remain after graceful termination, sends SIGKILL.
+  </Step>
+  <Step title="Verifies cleanup">
+    Confirms all bot processes have been terminated.
+  </Step>
+</Steps>
+
+**Manual execution**:
+```bash
+./scripts/kill_bot_processes.sh
+```
+
+**Output**:
+```
+🗑️  Lock file de Telegram eliminado
+🗑️  Lock file de Slack eliminado
+✅ Todos los procesos del bot fueron terminados
+```
+
+## Log files
+
+All automation scripts write logs to `scripts/logs/`:
+
+| Script | Log File |
+|--------|----------|
+| Weekly bot report | `weekly-bot-report.log` |
+| Monthly DS & AI report | `monthly-ds-ai-report.log` |
+
+Logs include timestamps and full output from Claudio's execution.
+
+**Example log entry**:
+```
+2026-02-28 09:00:15 - Starting weekly bot report...
+[Claudio output]
+2026-02-28 09:02:43 - Weekly bot report completed.
+```
+
+## Setting up cron jobs
+
+To configure these scripts to run automatically:
+
+<CodeGroup>
+```bash Edit crontab
+crontab -e
+```
+
+```cron Add entries
+# Weekly bot report - Every Monday at 9:00 AM
+0 9 * * 1 /Users/ignaciodelacuba/Dev/claudio/scripts/weekly-bot-report.sh
+
+# Monthly DS & AI report - 1st of month at 10:00 AM
+0 10 1 * * /Users/ignaciodelacuba/Dev/claudio/scripts/monthly-ds-ai-report.sh
+```
+</CodeGroup>
+
+<Warning>
+Automated scripts require your machine to be running at the scheduled time. For production use, deploy to a server with guaranteed uptime.
+</Warning>
+
+## Requirements
+
+- **Claude Code CLI** installed at the path specified in the script
+- **MCPs configured** (Google Sheets, Gmail, ClickUp, Google Docs)
+- **Workspace path** correctly set in the script
+- **Write permissions** for log directory
+
+## Customizing scripts
+
+You can modify the prompts in the scripts to:
+
+- Change recipients for email reports
+- Add or remove metrics from reports
+- Adjust report formatting (colors, tables, sections)
+- Change output destinations (different folders, channels)
+
+Edit the script files directly and update the prompt passed to `claude -p`.
+
+## Monitoring
+
+To monitor automation health:
+
+<AccordionGroup>
+  <Accordion title="Check recent logs">
+    ```bash
+    tail -n 50 scripts/logs/weekly-bot-report.log
+    ```
+  </Accordion>
+  <Accordion title="Verify cron is running">
+    ```bash
+    crontab -l
+    ```
+  </Accordion>
+  <Accordion title="Test script manually">
+    Run the script directly to verify it works before relying on cron.
+  </Accordion>
+  <Accordion title="Set up alerts">
+    Configure email notifications for cron failures or add monitoring via your preferred tool.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Script doesn't run on schedule">
+    - Verify cron is enabled on your system
+    - Check script has execute permissions (`chmod +x script.sh`)
+    - Ensure absolute paths are used in the script and crontab
+    - Check system logs: `grep CRON /var/log/syslog`
+  </Accordion>
+  <Accordion title="Script runs but fails">
+    - Check the log file for error messages
+    - Verify MCP configurations are valid
+    - Test MCPs manually with `claude -p "test prompt"`
+    - Ensure API tokens and credentials haven't expired
+  </Accordion>
+  <Accordion title="No logs generated">
+    - Verify the `scripts/logs/` directory exists
+    - Check write permissions on the logs directory
+    - Run the script manually to see if it creates logs
+  </Accordion>
+</AccordionGroup>

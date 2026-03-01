@@ -1,0 +1,206 @@
+---
+title: ClickUp integration
+description: Manage product work with the ClickUp MCP server
+---
+
+The ClickUp integration lets Claudio create and manage initiatives, epics, and user stories in your workspace.
+
+## Purpose
+
+Use this MCP to:
+
+- Query workspace hierarchy and tasks
+- Fetch context from initiatives and epics
+- Create user stories with proper context
+- Update task status and details
+- Search for tasks across lists
+
+## Setup
+
+<Steps>
+  <Step title="Get your API key">
+    1. Go to ClickUp Settings → Apps
+    2. Generate an API Token
+    3. Copy your Team ID from the workspace URL (e.g., `https://app.clickup.com/36668236/...`)
+  </Step>
+  
+  <Step title="Get your license key">
+    The ClickUp MCP server requires a license key. Contact `@taazkareem` for access to `@taazkareem/clickup-mcp-server`.
+  </Step>
+  
+  <Step title="Configure environment variables">
+    Add these variables to your MCP configuration:
+    
+    ```json
+    "env": {
+      "CLICKUP_MCP_LICENSE_KEY": "YOUR_LICENSE_KEY",
+      "CLICKUP_API_KEY": "YOUR_API_KEY",
+      "CLICKUP_TEAM_ID": "YOUR_TEAM_ID",
+      "DOCUMENT_SUPPORT": "true"
+    }
+    ```
+  </Step>
+  
+  <Step title="Install the server">
+    The server runs via npx and installs automatically:
+    
+    ```json
+    "clickup": {
+      "command": "npx",
+      "args": ["-y", "@taazkareem/clickup-mcp-server@latest"],
+      "env": { ... }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Available tools
+
+### get_workspace_hierarchy
+
+View the structure of your workspace, including spaces, folders, and lists.
+
+```
+get_workspace_hierarchy()
+```
+
+### get_workspace_tasks
+
+Search for tasks by list ID. Use this to query initiatives, epics, or user stories.
+
+```
+get_workspace_tasks(
+  list_ids: ["901213053436"],
+  include_archived: false
+)
+```
+
+### get_task
+
+Get detailed information about a specific task.
+
+```
+get_task(taskId: "abc123xyz")
+```
+
+### create_task
+
+Create a new task in a list.
+
+```
+create_task(
+  listId: "901213056238",
+  name: "🎯 Add local testing for Sales Agent",
+  markdown_description: "..."
+)
+```
+
+### update_task
+
+Update an existing task's name, description, status, or other fields.
+
+```
+update_task(
+  taskId: "abc123xyz",
+  name: "Updated title",
+  status: "in progress"
+)
+```
+
+## Key IDs for P&T - DS & AI Squad
+
+Claudio uses these list IDs to navigate your workspace:
+
+### Query context
+
+| What | List ID | Location |
+|------|---------|----------|
+| Initiatives | `901213053436` | P&T - General → Approved Initiatives |
+| Current quarter epics | `901215396098` | DS & AI Squad → Q1 2026 Epics |
+| Epic backlog | `901213056240` | DS & AI Squad → Epics Backlog |
+
+### Create work
+
+| What | List ID | Location |
+|------|---------|----------|
+| User stories | `901213056238` | DS & AI Squad → Sprint Backlog (Upcoming) |
+| Tech debt | `901213056236` | DS & AI Squad → Tech Debt & Spikes |
+
+<Note>
+  The current quarter epics list changes each quarter (Q1 2026, Q2 2026, etc.). Update the list ID when a new quarter starts.
+</Note>
+
+## Usage examples
+
+### Create a user story with context
+
+Claudio follows this workflow when you ask to create a user story:
+
+```
+You: Create a user story for the Sales Agent initiative about local testing
+
+Claudio:
+1. Queries initiatives: get_workspace_tasks(list_ids: ["901213053436"])
+2. Finds "Sales Agent" initiative
+3. Queries related epics: get_workspace_tasks(list_ids: ["901215396098"])
+4. Extracts context: OKR, business value, problem, hypothesis
+5. Creates story: create_task(listId: "901213056238", ...)
+```
+
+The resulting user story includes:
+- Strategic context from the initiative
+- Problem definition from the epic
+- Business value and success metrics
+- Acceptance criteria based on your prompt
+
+### Search for tasks
+
+```
+You: Show me all user stories in the sprint backlog
+
+Claudio uses: get_workspace_tasks(list_ids: ["901213056238"])
+```
+
+### Update task status
+
+```
+You: Move task abc123 to in progress
+
+Claudio uses: update_task(taskId: "abc123", status: "in progress")
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Always query context before creating">
+    Claudio automatically fetches initiative and epic context before creating user stories. This ensures every story has clear business value and strategic alignment.
+  </Accordion>
+  
+  <Accordion title="Use the current quarter's epic list">
+    Make sure you're querying the right quarter's epic list. The list ID changes each quarter (currently Q1 2026 = `901215396098`).
+  </Accordion>
+  
+  <Accordion title="Include business value">
+    Every task should connect to business outcomes. Claudio extracts this from initiative and epic context automatically.
+  </Accordion>
+  
+  <Accordion title="Use templates for consistency">
+    Claudio uses standardized templates for initiatives, epics, and user stories (see `docs/integrations/clickup/templates/`).
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Can't find my workspace">
+    Verify your `CLICKUP_TEAM_ID` is correct. You can find it in your workspace URL: `https://app.clickup.com/TEAM_ID/...`
+  </Accordion>
+  
+  <Accordion title="Permission errors">
+    Make sure your API key has access to the workspace and the specific lists you're trying to query.
+  </Accordion>
+  
+  <Accordion title="License key invalid">
+    The ClickUp MCP server requires a valid license. Contact the package maintainer if you're getting license errors.
+  </Accordion>
+</AccordionGroup>

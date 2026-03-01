@@ -1,0 +1,266 @@
+---
+title: Google Docs integration
+description: Create and edit documents with the Google Docs MCP server
+---
+
+The Google Docs integration lets Claudio create, read, and update documents in your Google Drive.
+
+## Purpose
+
+Use this MCP to:
+
+- Create new documents with templates
+- Read document content
+- Update existing documents
+- List your recent documents
+- Generate meeting notes and specs
+
+## Setup
+
+<Steps>
+  <Step title="Set up Google Cloud project">
+    1. Go to [Google Cloud Console](https://console.cloud.google.com)
+    2. Create a new project or select an existing one
+    3. Enable the Google Docs API and Google Drive API
+  </Step>
+  
+  <Step title="Create OAuth credentials">
+    1. Go to APIs & Services → Credentials
+    2. Click Create Credentials → OAuth client ID
+    3. Choose Desktop application
+    4. Download the credentials JSON file
+    5. Save it as `client_secret.json` in your MCP server directory
+  </Step>
+  
+  <Step title="Build the MCP server">
+    The Google Docs MCP runs as a local Node.js server:
+    
+    ```bash
+    cd /path/to/mcp-googledocs-server
+    npm install
+    npm run build
+    ```
+  </Step>
+  
+  <Step title="Configure the server path">
+    Add this to your MCP configuration:
+    
+    ```json
+    "google-docs-mcp": {
+      "command": "node",
+      "args": ["/path/to/mcp-googledocs-server/dist/server.js"]
+    }
+    ```
+  </Step>
+  
+  <Step title="Authorize the application">
+    On first run, the server will:
+    1. Open a browser window
+    2. Ask you to sign in to Google
+    3. Request permissions for Docs and Drive
+    4. Save an auth token for future use
+  </Step>
+</Steps>
+
+## Available tools
+
+### create_document
+
+Create a new Google Doc.
+
+```
+create_document(
+  title: "Daily Standup - 2026-02-28",
+  content: "## Participants\n- Alice\n- Bob\n\n## Updates\n..."
+)
+```
+
+### read_document
+
+Read the content of an existing document.
+
+```
+read_document(
+  document_id: "1abc123def456..."
+)
+```
+
+### update_document
+
+Update the content of an existing document.
+
+```
+update_document(
+  document_id: "1abc123def456...",
+  content: "Updated content here..."
+)
+```
+
+### list_documents
+
+List your recent Google Docs.
+
+```
+list_documents(
+  limit: 10
+)
+```
+
+## Usage examples
+
+### Create meeting notes
+
+```
+You: Create daily standup notes for today
+
+Claudio:
+1. Uses create_document() with standup template
+2. Fills in date and participants
+3. Returns the doc URL
+4. (Optional) Shares link in Slack
+```
+
+### Generate technical spec
+
+```
+You: Create a tech spec for the Sales Agent local testing feature
+
+Claudio:
+1. Queries ClickUp for initiative and epic context
+2. Creates document with spec template
+3. Fills in background, requirements, and approach
+4. Returns the doc URL for review
+```
+
+### Read and summarize
+
+```
+You: Summarize the Q1 planning doc
+
+Claudio:
+1. Uses read_document() to fetch content
+2. Analyzes and extracts key points
+3. Provides a concise summary
+```
+
+## Common workflows
+
+### Daily standup flow
+
+1. Create Google Doc with standup template
+2. Include date, participants, and agenda
+3. Share link in #standup Slack channel
+4. Team fills in updates during the meeting
+
+### Product spec flow
+
+1. Query ClickUp for initiative and epic details
+2. Create Google Doc with spec template
+3. Include context, requirements, and success criteria
+4. Link doc in ClickUp epic
+5. Share for team review
+
+### Meeting notes from Granola
+
+1. Get meeting transcript from Granola
+2. Extract action items and decisions
+3. Create formatted Google Doc
+4. Share with attendees in Slack
+
+## Document templates
+
+Claudio uses these common templates:
+
+### Daily standup
+
+```markdown
+# Daily Standup - [Date]
+
+## Participants
+- [Name]
+- [Name]
+
+## Updates
+
+### [Name]
+- Yesterday: 
+- Today: 
+- Blockers: 
+
+## Action Items
+- [ ] Item 1
+- [ ] Item 2
+```
+
+### Technical spec
+
+```markdown
+# [Feature Name] - Technical Specification
+
+## Background
+[Context from initiative/epic]
+
+## Requirements
+- Functional requirement 1
+- Functional requirement 2
+
+## Technical Approach
+[Implementation details]
+
+## Success Criteria
+- Metric 1
+- Metric 2
+
+## Timeline
+[Milestones]
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use descriptive titles">
+    Include dates and topics in document titles for easy searching. For example: `Daily Standup - 2026-02-28` or `Sales Agent Tech Spec - Q1 2026`.
+  </Accordion>
+  
+  <Accordion title="Link from ClickUp">
+    Add Google Doc URLs to ClickUp epics and user stories so all context is accessible from one place.
+  </Accordion>
+  
+  <Accordion title="Share links, not content">
+    When notifying in Slack, share the Google Doc link rather than copying content. This keeps a single source of truth.
+  </Accordion>
+  
+  <Accordion title="Use folders for organization">
+    Create folders in Google Drive for different types of docs (Meetings, Specs, Reports) and move docs there after creation.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Authentication failed">
+    If the OAuth token expires:
+    
+    1. Delete the stored token file (usually `token.json`)
+    2. Restart the MCP server
+    3. Re-authorize when prompted
+  </Accordion>
+  
+  <Accordion title="Document not found">
+    Verify:
+    - The document ID is correct
+    - You have access to the document
+    - The document hasn't been deleted
+  </Accordion>
+  
+  <Accordion title="Permission denied">
+    Make sure the Google Docs API and Google Drive API are enabled in your Google Cloud project.
+  </Accordion>
+  
+  <Accordion title="Server won't start">
+    Check that:
+    - You've run `npm install` and `npm run build`
+    - The `client_secret.json` file exists
+    - The path in your MCP config is correct
+  </Accordion>
+</AccordionGroup>

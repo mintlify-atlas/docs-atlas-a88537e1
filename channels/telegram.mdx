@@ -1,0 +1,300 @@
+---
+title: Telegram
+description: Control Claudio from Telegram with voice transcription support
+---
+
+Interact with Claudio through Telegram using text messages or voice notes. The bot connects to your local Claude Code CLI instance and provides access to all configured MCPs.
+
+## Features
+
+- Send text messages or voice notes to Claudio
+- Automatic voice transcription using OpenAI Whisper
+- Persistent conversation sessions
+- Rate limiting and command timeouts for security
+- User authorization by Telegram ID
+- Real-time streaming responses
+
+## Setup
+
+<Steps>
+  <Step title="Create your Telegram bot">
+    Open Telegram and message [@BotFather](https://t.me/botfather) to create a new bot:
+
+    ```
+    /newbot
+    ```
+
+    Follow the prompts to choose a name and username. BotFather will give you a bot token like `1234567890:ABCdefGHIjklMNOpqrsTUVwxyz`.
+  </Step>
+
+  <Step title="Get your Telegram user ID">
+    You need your Telegram user ID to authorize yourself. Message [@userinfobot](https://t.me/userinfobot) to get your ID.
+
+    Your ID will look like `123456789`.
+  </Step>
+
+  <Step title="Install dependencies">
+    From the Claudio root directory:
+
+    <CodeGroup>
+    ```bash Mac/Linux
+    source venv/bin/activate
+    pip install -r channels/telegram/requirements.txt
+    ```
+
+    ```bash Windows
+    venv\Scripts\activate
+    pip install -r channels\telegram\requirements.txt
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Copy the example configuration:
+
+    ```bash
+    cp channels/telegram/.env.example channels/telegram/.env
+    ```
+
+    Edit `channels/telegram/.env` with your values:
+
+    ```bash
+    # Required - Token from @BotFather
+    TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+
+    # Required - Your Telegram user ID from @userinfobot
+    # For multiple users, separate with commas: 123456789,987654321
+    ALLOWED_USER_IDS=123456789
+
+    # Optional - Path to Claude CLI (defaults to 'claude' in PATH)
+    CLAUDE_CLI_PATH=claude
+
+    # Optional - Working directory (defaults to current directory)
+    WORKSPACE_PATH=/Users/yourname/Dev/claudio
+    ```
+
+    <Warning>
+      The bot will not start if `ALLOWED_USER_IDS` is empty. This prevents unauthorized access to your system.
+    </Warning>
+  </Step>
+
+  <Step title="Start the bot">
+    <CodeGroup>
+    ```bash Using start script
+    ./channels/telegram/start.sh
+    ```
+
+    ```bash Direct execution
+    cd /path/to/claudio
+    python channels/telegram/bot.py
+    ```
+    </CodeGroup>
+
+    You should see:
+    ```
+    Bot iniciado. Presiona Ctrl+C para detener.
+    ```
+  </Step>
+</Steps>
+
+## Configuration
+
+### Security settings
+
+```bash .env
+# Maximum command execution time (seconds)
+COMMAND_TIMEOUT=1800
+
+# Maximum message length (characters)
+MAX_INPUT_LENGTH=10000
+
+# Rate limiting: max requests per time window
+RATE_LIMIT_REQUESTS=10
+RATE_LIMIT_WINDOW=60
+
+# Skip permission prompts for MCPs (required for bot operation)
+SKIP_PERMISSIONS=true
+```
+
+### Voice transcription (optional)
+
+Enable voice message transcription by adding your OpenAI API key:
+
+```bash .env
+# Get your API key from https://platform.openai.com/api-keys
+OPENAI_API_KEY=sk-your-api-key-here
+
+# Transcription language (default: Spanish)
+WHISPER_LANGUAGE=es
+```
+
+<Note>
+  Without an OpenAI API key, the bot will still work but voice messages won't be transcribed.
+</Note>
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Show welcome message and your user ID |
+| `/help` | Display detailed help information |
+| `/new` | Start a new conversation (clears context) |
+| `/status` | Show bot status and configuration |
+| `/myid` | Display your Telegram user ID |
+
+## Usage
+
+### Send text messages
+
+Just send a message to your bot:
+
+```
+List my open GitHub pull requests
+```
+
+Claudio will execute the request using Claude Code CLI and all configured MCPs.
+
+### Send voice messages
+
+Record and send a voice message. If you've configured `OPENAI_API_KEY`, the bot will:
+
+1. Show "🎤 Transcribing audio..."
+2. Display the transcription
+3. Execute the request
+
+### Conversation sessions
+
+The bot maintains conversation context per user. Each message continues the previous conversation unless you use `/new`.
+
+```
+You: Create a ClickUp user story for login feature
+Claudio: [creates user story]
+
+You: Add acceptance criteria
+Claudio: [adds criteria to the same story]
+```
+
+Source: `channels/telegram/bot.py:289-291`
+
+## Security features
+
+### User authorization
+
+Only users listed in `ALLOWED_USER_IDS` can use the bot. Unauthorized users receive:
+
+```
+❌ Acceso denegado
+
+No estás autorizado para usar este bot.
+Contacta al administrador para obtener acceso.
+```
+
+Source: `channels/telegram/bot.py:87-94`
+
+### Rate limiting
+
+Prevents spam and DoS attacks by limiting requests:
+
+- Default: 10 requests per 60 seconds per user
+- Configurable via `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW`
+- Users exceeding the limit see: "⏱️ Rate limit excedido"
+
+Source: `channels/telegram/bot.py:64-67`
+
+### Command timeout
+
+Commands are automatically terminated after `COMMAND_TIMEOUT` seconds (default: 1800 = 30 minutes) to prevent blocking the bot indefinitely.
+
+Source: `channels/telegram/bot.py:59`
+
+### Lock file
+
+Prevents multiple instances of the bot from running simultaneously:
+
+```bash
+# If another instance is running, you'll see:
+❌ ERROR: Otra instancia del bot está ejecutándose
+```
+
+Source: `channels/telegram/bot.py:112-157`
+
+## Stopping the bot
+
+<CodeGroup>
+```bash Keyboard interrupt
+Ctrl+C
+```
+
+```bash Kill script (from project root)
+./kill_bot_processes.sh
+```
+
+```bash Manual cleanup
+pkill -f "python.*telegram.*bot.py"
+rm -f /tmp/telegram_claude_bot.lock
+```
+</CodeGroup>
+
+## Troubleshooting
+
+### Bot doesn't respond
+
+Check that the bot is running:
+
+```bash
+ps aux | grep telegram.*bot.py
+```
+
+Verify your token is correct in `.env`.
+
+### "Access denied" message
+
+Make sure your user ID is in `ALLOWED_USER_IDS`:
+
+1. Use `/myid` command to get your ID
+2. Add it to `ALLOWED_USER_IDS` in `.env`
+3. Restart the bot
+
+### Voice transcription not working
+
+Check:
+
+1. `OPENAI_API_KEY` is set in `.env`
+2. OpenAI package is installed: `pip install openai`
+3. Check logs for API errors
+
+Source: `channels/telegram/bot.py:492-532`
+
+### Lock file error
+
+If you see "Another instance may be running":
+
+```bash
+# Remove the lock file
+rm /tmp/telegram_claude_bot.lock
+
+# Or use the kill script
+./kill_bot_processes.sh
+```
+
+## Architecture
+
+```
+Telegram User
+      |
+      v
+  Bot (bot.py)
+      |
+      v
+ClaudeCodeExecutor  ---->  Claude Code CLI (-p flag)
+      |                             |
+      v                             v
+OutputBuffer                  ~/.claude.json
+      |                             |
+      v                             v
+Telegram API                   MCPs (ClickUp, GitHub, etc.)
+```
+
+The bot uses `ClaudeCodeExecutor` to run Claude Code CLI with the `-p` flag for non-interactive execution and `--dangerously-skip-permissions` to bypass MCP confirmation prompts.
+
+Source: `channels/telegram/bot.py:242-432`

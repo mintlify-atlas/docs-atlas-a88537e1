@@ -1,0 +1,281 @@
+---
+title: Granola integration
+description: Access meeting notes and transcriptions with the Granola MCP server
+---
+
+The Granola integration connects Claudio to your Granola meeting recordings and transcriptions.
+
+## What is Granola?
+
+Granola is a meeting notes app that automatically records and transcribes your meetings. It runs in the background during calls and generates structured notes with action items and key decisions.
+
+## Purpose
+
+Use this MCP to:
+
+- List recent meetings
+- Get meeting transcriptions
+- Extract action items and decisions
+- Search across meeting notes
+- Create tasks from meeting outcomes
+
+## Setup
+
+<Steps>
+  <Step title="Install Granola">
+    Download and install the Granola app from [granola.so](https://granola.so). Available for macOS.
+  </Step>
+  
+  <Step title="Record some meetings">
+    Use Granola to record at least one meeting so the cache file is created.
+  </Step>
+  
+  <Step title="Locate the cache file">
+    Find your Granola cache file at:
+    
+    ```
+    ~/Library/Application Support/Granola/cache-v3.json
+    ```
+  </Step>
+  
+  <Step title="Configure the MCP server">
+    Add this to your MCP configuration:
+    
+    ```json
+    "granola-mcp": {
+      "command": "python",
+      "args": ["-m", "granola_mcp.mcp"],
+      "env": {
+        "GRANOLA_CACHE_PATH": "/Users/YOUR_USERNAME/Library/Application Support/Granola/cache-v3.json"
+      }
+    }
+    ```
+    
+    <Warning>
+      Replace `YOUR_USERNAME` with your actual macOS username.
+    </Warning>
+  </Step>
+  
+  <Step title="Install the Python module">
+    The Granola MCP is a Python module. Install it with:
+    
+    ```bash
+    pip install granola-mcp
+    ```
+  </Step>
+</Steps>
+
+## Available tools
+
+### list_meetings
+
+List recent meetings from Granola.
+
+```
+list_meetings(
+  limit: 10
+)
+```
+
+Returns meeting titles, dates, and IDs.
+
+### get_meeting
+
+Get detailed information about a specific meeting, including the full transcription.
+
+```
+get_meeting(
+  meeting_id: "abc123xyz"
+)
+```
+
+Returns:
+- Meeting title and date
+- Full transcript
+- Participants (if detected)
+- Duration
+
+### search_meetings
+
+Search for specific topics or keywords across all meeting transcriptions.
+
+```
+search_meetings(
+  query: "sales agent roadmap"
+)
+```
+
+## Usage examples
+
+### Get today's meeting notes
+
+```
+You: What did we discuss in today's product meeting?
+
+Claudio:
+1. Uses list_meetings() to find today's meetings
+2. Uses get_meeting() for the product meeting
+3. Extracts key discussion points
+4. Summarizes the conversation
+```
+
+### Create tasks from meeting
+
+```
+You: Create user stories from this morning's planning meeting
+
+Claudio:
+1. Gets meeting transcript with get_meeting()
+2. Identifies action items and feature requests
+3. Uses ClickUp MCP to create user stories
+4. Returns list of created tasks
+```
+
+### Search across meetings
+
+```
+You: When did we last discuss the authentication feature?
+
+Claudio uses: search_meetings(query: "authentication feature")
+Returns relevant meetings with context.
+```
+
+## Common workflows
+
+### Meeting follow-up
+
+1. Get meeting transcript from Granola
+2. Extract action items and decisions
+3. Create Google Doc with formatted notes
+4. Create ClickUp tasks for action items
+5. Share doc link in Slack with attendees
+
+```
+You: Process the notes from today's standup
+
+Claudio:
+1. Granola: get_meeting() for standup
+2. Extract: blockers, action items, updates
+3. Google Docs: create_document() with structured notes
+4. ClickUp: create_task() for each action item
+5. Slack: Share doc link in #standup
+```
+
+### Weekly summary
+
+1. List all meetings from the past week
+2. Extract key decisions and outcomes
+3. Generate summary report
+4. Share in team channel
+
+### Research and context
+
+1. Search meetings for specific topics
+2. Compile relevant discussions
+3. Use as context for writing specs or user stories
+
+## What Granola captures
+
+Granola automatically detects and captures:
+
+- **Participants**: Who was in the meeting
+- **Topics**: What was discussed
+- **Action items**: Tasks and follow-ups identified
+- **Decisions**: Key outcomes and agreements
+- **Timestamps**: When specific topics were discussed
+- **Full transcript**: Complete conversation text
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Review before creating tasks">
+    When Claudio extracts action items from a meeting, review them before creating ClickUp tasks. Not every mention of work needs a formal task.
+  </Accordion>
+  
+  <Accordion title="Use search for context">
+    Before making product decisions, search Granola for related past discussions to understand the full context and history.
+  </Accordion>
+  
+  <Accordion title="Combine with documentation">
+    After important meetings, create Google Docs from Granola transcripts to have permanent, structured records that are easier to share.
+  </Accordion>
+  
+  <Accordion title="Link meetings to initiatives">
+    When creating tasks from meetings, connect them to the relevant ClickUp initiative or epic for traceability.
+  </Accordion>
+</AccordionGroup>
+
+## Integration with other MCPs
+
+### Granola → ClickUp → Slack
+
+```
+You: Create tasks from the product planning meeting and notify the team
+
+Claudio:
+1. Granola: get_meeting() for planning session
+2. Identifies 5 action items
+3. ClickUp: create_task() for each item
+4. Slack: DM each assignee with their task link
+```
+
+### Granola → Google Docs → Slack
+
+```
+You: Create formatted notes from today's standup and share them
+
+Claudio:
+1. Granola: get_meeting() for standup
+2. Extracts: participants, updates, blockers
+3. Google Docs: create_document() with template
+4. Slack: Share link in #standup
+```
+
+### Granola → Search → Context
+
+```
+You: What have we decided about the authentication approach?
+
+Claudio:
+1. Granola: search_meetings("authentication approach")
+2. Finds 3 relevant meetings
+3. Summarizes decisions from each
+4. Provides timeline of how thinking evolved
+```
+
+## Privacy and data
+
+Granola stores recordings locally on your machine. The MCP reads from the local cache file, so your meeting data never leaves your computer unless you explicitly ask Claudio to share it (e.g., creating a Google Doc or Slack message).
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cache file not found">
+    Verify:
+    - Granola is installed and running
+    - You've recorded at least one meeting
+    - The cache path in your config is correct
+    - Replace `YOUR_USERNAME` with your actual username
+  </Accordion>
+  
+  <Accordion title="No meetings returned">
+    Make sure:
+    - Granola has recorded meetings (check the Granola app)
+    - The cache file is not empty or corrupted
+    - Granola is the latest version
+  </Accordion>
+  
+  <Accordion title="Meeting ID not found">
+    Meeting IDs may change if Granola's cache is cleared. Use list_meetings() to get current IDs.
+  </Accordion>
+  
+  <Accordion title="Python module not found">
+    Install the Granola MCP module:
+    
+    ```bash
+    pip install granola-mcp
+    ```
+    
+    If using a virtual environment, make sure it's activated when running the MCP.
+  </Accordion>
+</AccordionGroup>

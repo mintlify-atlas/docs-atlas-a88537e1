@@ -1,0 +1,205 @@
+---
+title: GitHub integration
+description: Work with repositories, PRs, and issues using GitHub Copilot MCP
+---
+
+The GitHub integration connects Claudio to your repositories through the GitHub Copilot MCP server.
+
+## Purpose
+
+Use this MCP to:
+
+- List repositories and branches
+- View and manage pull requests
+- Create and update issues
+- Search code across repositories
+- Review PR changes and comments
+
+## Setup
+
+<Steps>
+  <Step title="Get GitHub Copilot access">
+    This MCP requires an active GitHub Copilot subscription. Subscribe at [github.com/features/copilot](https://github.com/features/copilot).
+  </Step>
+  
+  <Step title="Get your Copilot token">
+    1. Sign in to GitHub with Copilot enabled
+    2. Generate a Copilot API token from your account settings
+    3. Copy the token (starts with `ghu_`)
+  </Step>
+  
+  <Step title="Configure the MCP server">
+    Add this to your MCP configuration:
+    
+    ```json
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer YOUR_GITHUB_COPILOT_TOKEN"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Available tools
+
+### list_repos
+
+List repositories you have access to.
+
+```
+list_repos(
+  org: "PropHero-Tech",
+  type: "all"  // or "public", "private"
+)
+```
+
+### list_pull_requests
+
+List pull requests in a repository.
+
+```
+list_pull_requests(
+  owner: "PropHero-Tech",
+  repo: "orders-agent",
+  state: "open"  // or "closed", "all"
+)
+```
+
+### get_pull_request
+
+Get detailed information about a specific PR.
+
+```
+get_pull_request(
+  owner: "PropHero-Tech",
+  repo: "orders-agent",
+  pull_number: 42
+)
+```
+
+### create_issue
+
+Create a new issue in a repository.
+
+```
+create_issue(
+  owner: "PropHero-Tech",
+  repo: "orders-agent",
+  title: "Bug: Agent fails on empty context",
+  body: "Description of the issue..."
+)
+```
+
+### search_code
+
+Search for code across repositories.
+
+```
+search_code(
+  query: "function processOrder repo:PropHero-Tech/orders-agent"
+)
+```
+
+## Usage examples
+
+### Review open PRs
+
+```
+You: Show me open PRs in the orders-agent repo
+
+Claudio:
+1. Uses list_pull_requests(owner: "PropHero-Tech", repo: "orders-agent", state: "open")
+2. Returns list with PR titles, authors, and status
+```
+
+### Create issue from user story
+
+```
+You: Create a GitHub issue for implementing local testing in orders-agent
+
+Claudio:
+1. Uses create_issue() with proper title and description
+2. Returns the issue URL
+3. (Optional) Links it to the ClickUp user story
+```
+
+### Find implementation details
+
+```
+You: Where is the order validation logic?
+
+Claudio uses: search_code(query: "validateOrder repo:PropHero-Tech/orders-agent")
+```
+
+## Common workflows
+
+### PR review workflow
+
+1. List open PRs with `list_pull_requests`
+2. Get PR details with `get_pull_request`
+3. Review changes and files
+4. Comment or approve the PR
+
+### Bug tracking workflow
+
+1. Create issue in GitHub with `create_issue`
+2. Link to ClickUp user story
+3. Notify team in Slack
+
+### Code exploration
+
+1. Search for specific functions or patterns
+2. Navigate to file locations
+3. Understand implementation details
+
+## Integration with ClickUp
+
+You can link GitHub issues and PRs to ClickUp tasks:
+
+```
+You: Create a user story and GitHub issue for implementing the new search feature
+
+Claudio:
+1. Creates ClickUp task in Sprint Backlog
+2. Creates GitHub issue in the relevant repo
+3. Adds GitHub issue URL to ClickUp task description
+4. Returns both links
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use specific repository names">
+    Always specify the owner and repo name to avoid ambiguity. For example: `PropHero-Tech/orders-agent` instead of just `orders-agent`.
+  </Accordion>
+  
+  <Accordion title="Include context in issues">
+    When creating issues, include relevant context from ClickUp initiatives and epics so the issue is self-contained.
+  </Accordion>
+  
+  <Accordion title="Link PRs to tasks">
+    Reference ClickUp task IDs in PR descriptions to maintain traceability between code and product work.
+  </Accordion>
+  
+  <Accordion title="Search before creating">
+    Before creating a new issue, search existing issues to avoid duplicates.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Authentication failed">
+    Verify your GitHub Copilot token is valid and hasn't expired. Generate a new token if needed.
+  </Accordion>
+  
+  <Accordion title="No access to repository">
+    Make sure your GitHub account has access to the organization and repository you're trying to query.
+  </Accordion>
+  
+  <Accordion title="Rate limit errors">
+    GitHub API has rate limits. If you hit the limit, wait a few minutes before retrying.
+  </Accordion>
+</AccordionGroup>

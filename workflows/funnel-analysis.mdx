@@ -1,0 +1,270 @@
+---
+title: Funnel analysis
+description: Audit and optimize every stage of your acquisition funnel with data-driven recommendations and side-by-side copy rewrites.
+---
+
+This workflow provides a comprehensive audit of your client acquisition funnel—from Meta ads to closed deals—with specific fixes, priority-ranked leaks, and rewritten copy for underperforming stages.
+
+## MCPs used
+
+- **Google Sheets** *(optional)* — Pulls funnel performance metrics if available
+- **Google Docs** *(optional)* — Creates a shareable audit report
+
+This is primarily a conversational workflow where Claudio guides you through the audit process.
+
+## How to trigger
+
+<CodeGroup>
+```bash Terminal
+claude -p "Audita mi funnel de ventas"
+```
+
+```text Telegram
+Quiero que revises mi embudo de conversión
+```
+
+```text Slack
+@Claudio audit my sales funnel
+```
+</CodeGroup>
+
+## What it does
+
+<Steps>
+  <Step title="Gathers inputs">
+    Claudio asks for your niche/offer, target audience, language preference, current metrics, and all funnel assets (ads, landing pages, emails, etc.).
+  </Step>
+  <Step title="Audits each stage">
+    Evaluates 10 funnel stages with a 1-10 score, diagnosis, and specific fixes for each.
+  </Step>
+  <Step title="Ranks revenue leaks">
+    Identifies which stages are losing the most revenue and prioritizes them by impact.
+  </Step>
+  <Step title="Provides rewrites">
+    For any stage scoring below 7/10, delivers side-by-side comparisons of original vs. improved copy.
+  </Step>
+  <Step title="Delivers optimized funnel map">
+    Shows the recommended architecture and flow for maximum conversion.
+  </Step>
+</Steps>
+
+## Funnel stages audited
+
+### 1. Meta ad (hook + script)
+
+**Benchmark**: 30%+ 3-second hook rate, CTR above 1.5%
+
+Audit criteria:
+- 5-second rule (WHO, WHAT, WHAT'S IN IT)
+- Hook quality and pattern interrupt
+- 5th-7th grade reading level
+- PAS-A structure (Problem > Agitate > Solution > Action)
+- Benefits vs features
+- New opportunity positioning
+- CTA selling the click, not the product
+
+### 2. Lead form / opt-in
+
+**Benchmark**: 30%+ conversion rate from click to lead
+
+Audit criteria:
+- Headline clarity on outcome
+- Friction balance (3-5 questions ideal)
+- Disqualifying questions to filter tire-kickers
+- Integrity tie-down ("Are you committed to showing up?")
+- Mobile-optimized design (4:5 aspect ratio)
+
+### 3. VSL / VSSL page
+
+**Benchmark**: 40%+ watch at least 50% of video
+
+Audited against the 5-minute VSL structure:
+1. Big promise / hook
+2. Social proof and transformation stories
+3. Twist the knife (address pain points)
+4. Introduce the solution
+5. Imagine this (visualization)
+6. First CTA with demo of next steps
+7. Second CTA (congratulations framing)
+8. Outro with clear call-to-action
+
+### 4. Book-a-call / application page
+
+**Benchmark**: 30%+ lead-to-booked-appointment rate
+
+Audit criteria:
+- 3-5 qualifying questions
+- Limited scheduling window (3-5 days)
+- Sufficient time slot availability
+- Value-reinforcing headline
+- Social proof elements
+
+### 5. Thank you / confirmation page
+
+**Benchmark**: Reinforce commitment and build trust
+
+Audit criteria:
+- Indoctrination video explaining what to expect
+- Clear next steps
+- Undeniable proof (case studies, testimonials)
+- PHE framework: Perception + Hopefulness + Excitement
+
+### 6. Lead nurture — SMS/WhatsApp
+
+**Benchmark**: 42%+ lead-to-appointment conversion
+
+Audited against proven schedule:
+- Day 1: 2-3 messages (intro, verify interest, value add)
+- Days 2-5: 1/day (value adds, engagement)
+- Days 7, 9, 12, 15: Strategic check-ins
+
+**Key principles**:
+- Speed to lead is critical (respond within 5 minutes)
+- Make at least 6 contact attempts
+- Phone calls convert better than SMS alone
+
+### 7. Lead nurture — email
+
+**Benchmark**: 20%+ open rate
+
+Audited against proven schedule:
+- Days 1-5: Soap Opera Sequence (story-driven)
+- Days 7, 9, 11, 14, 21, 28: Mini-Story emails (Seinfeld-style)
+
+Emails must build the **4 Core Beliefs**:
+1. Belief in the Solution
+2. Belief in the Product/Offer
+3. Belief in the Company
+4. Belief in Themselves
+
+### 8. Lead nurture — call schedule
+
+**Benchmark**: 6+ call attempts per lead
+
+Audited against:
+- Day 1: 3 calls + voicemail
+- Day 2: 2 calls + voicemail
+- Days 3-4: 1 call each
+- Day 6: 2 calls + voicemail
+- Days 8, 11, 14: Strategic final attempts
+
+### 9. Booking reminders / show-up optimization
+
+**Benchmark**: 60-80% show-up rate
+
+3-stage show-up system:
+
+**Technical elements** (quick fixes):
+- Immediate confirmation (email + SMS)
+- Personal booking message 16 minutes after
+- Calendar confirmation prompt
+- 48-hour, 24-hour, 4-hour, 15-minute reminders
+- Fake forward email
+- 3-5 day scheduling window
+
+**Human elements** (quick fixes):
+- Confirm tie-down on booking call
+- 5-minute post-booking phone call
+- Pre-call engagement (get them to respond)
+- Personal reminder messages (not automated-looking)
+- Cancellation warning if not confirmed
+
+**Value elements** (root cause fix):
+- Create Perception (clear expectations)
+- Create Hopefulness (what they'll discover)
+- Create Excitement (transformation awaiting)
+- Add value TO the call itself
+- Incentives as last resort
+
+### 10. Sales call / close
+
+**Benchmark**: 20%+ close rate
+
+Audit criteria:
+- Pre-call content consumption (7 hours / 11 touchpoints / 4 mediums ideal)
+- 4 Core Beliefs installed before call
+- Proper discovery to tailor the pitch
+- Desire creation through comparison technique
+- Discovery > Pitch > Close structure
+- Pre-handled objections through marketing
+
+## Process Communication Model
+
+Claudio evaluates which personality types your funnel speaks to:
+
+| Type | Perceives Through | Technique |
+|------|-------------------|------------|
+| **Thinkers** | Thoughts, facts, data | Detailed, structured info with logic |
+| **Persisters** | Opinions, trust, beliefs | Speak to values and ideals |
+| **Harmonizers** | Emotions, relationships | Stories that develop compassion |
+| **Imaginers** | Inaction, analysis, feelings | Visuals and storytelling |
+| **Rebels** | Reactions, spontaneity | Playful, creative, humorous |
+| **Promoters** | Actions, directness | Exciting, action-oriented |
+
+The audit identifies which types you're missing and how to reach them.
+
+## Output format
+
+You'll receive a structured audit:
+
+```markdown
+=== FUNNEL AUDIT SUMMARY ===
+Overall Score: X/10
+Estimated Revenue Leak: [description]
+
+=== STAGE-BY-STAGE AUDIT ===
+[Each stage with score, diagnosis, fixes]
+
+=== PRIORITY-RANKED LEAKS ===
+[Biggest to smallest impact]
+
+=== SIDE-BY-SIDE REWRITES ===
+[Original vs. Improved for weak stages]
+
+=== OPTIMIZED FUNNEL MAP ===
+[Recommended flow + architecture]
+
+=== QUICK WINS (Implement Today) ===
+[3-5 immediate fixes for instant improvement]
+```
+
+## Key metrics tracked
+
+| Stage | KPI | Target |
+|-------|-----|--------|
+| Meta Ad | 3-sec hook rate | 30%+ |
+| Meta Ad | CTR | 1.5%+ |
+| Opt-in | Click-to-lead rate | 30%+ |
+| VSL | 50%+ watch rate | 40%+ |
+| Application | Lead-to-booked rate | 30%+ |
+| Show-up | Booked-to-showed rate | 60-80% |
+| Close | Showed-to-closed rate | 20%+ |
+
+## Copy rewrite rules
+
+All rewrites follow these principles:
+
+- **5th-7th grade reading level** — Simple words, short sentences
+- **Benefits > Features** — Sell outcomes, not attributes
+- **Cocktail Party Test** — If you wouldn't say it face-to-face, don't write it
+- **Outcome Clarity** — Be specific ("double your sales in 30 days" not "revolutionize your business")
+- **New Opportunity** — Position as fresh and different
+- **Performance > Branding** — Conversion over polish
+- **Simple scales, complex fails** — Don't over-complicate
+- **Story format** — Use narratives in VSLs, emails, and ads
+
+<Tip>
+The audit is conversational—Claudio asks follow-up questions to understand your specific context and provides tailored recommendations.
+</Tip>
+
+## Use cases
+
+- Launching a new product and building the funnel from scratch
+- Diagnosing why conversion rates dropped
+- Optimizing an existing funnel before scaling ad spend
+- Training a new marketing hire on funnel best practices
+- Conducting quarterly funnel health checks
+
+<Note>
+This workflow is based on the Funnel Master framework documented in `docs/workflows/revenue/funnel-master.md`. It incorporates direct-response marketing principles and proven conversion optimization techniques.
+</Note>
